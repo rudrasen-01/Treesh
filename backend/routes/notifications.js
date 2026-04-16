@@ -4,12 +4,7 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 
 const router = express.Router();
-const ALLOWED_NOTIFICATION_TYPES = [
-  "follow_request",
-  "follow_request_accepted",
-  "like",
-  "comment",
-];
+const EXCLUDED_NOTIFICATION_TYPES = ["message"];
 
 // Get user notifications
 router.get("/", auth, async (req, res) => {
@@ -17,7 +12,7 @@ router.get("/", auth, async (req, res) => {
     const { page = 1, limit = 20, unreadOnly } = req.query;
     const filter = {
       recipient: req.user.id,
-      type: { $in: ALLOWED_NOTIFICATION_TYPES },
+      type: { $nin: EXCLUDED_NOTIFICATION_TYPES },
     };
 
     if (unreadOnly === "true") {
@@ -34,7 +29,7 @@ router.get("/", auth, async (req, res) => {
     const unreadCount = await Notification.countDocuments({
       recipient: req.user.id,
       isRead: false,
-      type: { $in: ALLOWED_NOTIFICATION_TYPES },
+      type: { $nin: EXCLUDED_NOTIFICATION_TYPES },
     });
 
     res.json({
@@ -78,7 +73,7 @@ router.patch("/mark-all-read", auth, async (req, res) => {
       {
         recipient: req.user.id,
         isRead: false,
-        type: { $in: ALLOWED_NOTIFICATION_TYPES },
+        type: { $nin: EXCLUDED_NOTIFICATION_TYPES },
       },
       { isRead: true, readAt: new Date() }
     );
@@ -153,7 +148,7 @@ router.get("/unread-count", auth, async (req, res) => {
     const count = await Notification.countDocuments({
       recipient: req.user.id || req.user._id,
       isRead: false,
-      type: { $in: ALLOWED_NOTIFICATION_TYPES },
+      type: { $nin: EXCLUDED_NOTIFICATION_TYPES },
     });
 
     res.json({

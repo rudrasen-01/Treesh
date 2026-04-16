@@ -50,12 +50,7 @@ type BackendNotification = {
   referenceId?: string;
 };
 
-const DISPLAY_NOTIFICATION_TYPES: BackendNotification["type"][] = [
-  "follow_request",
-  "follow_request_accepted",
-  "like",
-  "comment",
-];
+const EXCLUDED_NOTIFICATION_TYPES: BackendNotification["type"][] = ["message"];
 
 const normalizeSenderId = (notification: BackendNotification) => {
   if (notification.sender && typeof notification.sender === "object") {
@@ -130,7 +125,7 @@ export const NotificationPage = () => {
         const list: BackendNotification[] = dedupeNotifications(
           data.notifications || [],
         ).filter((notification) =>
-          DISPLAY_NOTIFICATION_TYPES.includes(notification.type),
+          !EXCLUDED_NOTIFICATION_TYPES.includes(notification.type),
         );
         setNotifications(list);
         const newUnread =
@@ -640,18 +635,6 @@ export const NotificationPage = () => {
             </div>
           </TabsContent>
         </Tabs>
-        {/* Empty State */}
-        {!loading && notifications.length === 0 && (
-          <div className="text-center py-12">
-            <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              No notifications yet
-            </h3>
-            <p className="text-muted-foreground">
-              When you get notifications, they'll appear here
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Unfollow Confirmation Dialog */}
