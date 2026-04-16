@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 bfb602f9789b75c68cf3ac1301e80929756f10a1 Rudra Sen <rudra.sen2021@sait.ac.in> 1775280723 +0530	clone: from https://github.com/Rajkumar-229/treesh-social-media.git
+bfb602f9789b75c68cf3ac1301e80929756f10a1 447399ef850f4ece819c4a35acf53851a7b2e135 Rudra Sen <rudra.sen2021@sait.ac.in> 1775631550 +0530	commit: UI Improvements: Optimized footer layout, implemented Instagram-style collapsible navigation sidebar
+447399ef850f4ece819c4a35acf53851a7b2e135 3f835f4986b796eec4d5631b1516e6c6b71fc2b5 Rudra Sen <rudra.sen2021@sait.ac.in> 1775631924 +0530	commit: Revert sidebar changes - restore original Navigation and MainApp components

@@ -1,0 +1,117 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# Database
+MONGODB_URI=mongodb://localhost:27017/social-media-platform
+
+# JWT Authentication
+JWT_SECRET=your-secret-key-change-this-in-production
+JWT_EXPIRES_IN=7d
+
+# Cloudinary (Image/Video Storage)
+CLOUDINARY_CLOUD_NAME=dd18f3teb
+CLOUDINARY_API_KEY=513855954448576
+CLOUDINARY_API_SECRET=S2Xh1HJZexMIoUjU1ByOpTsx5Ns
+
+# VideoSDK (Live Streaming)
+VIDEOSDK_API_KEY=1b3401ae-966a-4086-842a-f43488e5d325
+VIDEOSDK_SECRET_KEY=2c5e0b94bc3926707fc80021811533c57ee74b4241c0bf565c3ddd2a587b7e61
+
+# Email Service (Gmail SMTP)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=officialtreeshtv@gmail.com
+EMAIL_PASS=bufj jeah dxrc imce
+
+# CORS
+FRONTEND_URL=http://localhost:5173
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=5000
+
+# Feature Flags
+ALLOW_REGISTER_AUTOMATCH=false
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# MacOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
