@@ -26,3 +26,4 @@ Thumbs.db
 # misc
 **/.cache/
 **/coverage/
+.git_backup*/
