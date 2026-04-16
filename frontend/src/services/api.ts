@@ -1168,6 +1168,14 @@ export const notificationsAPI = {
     return handleResponse(response);
   },
 
+  deleteNotification: async (notificationId: string): Promise<ApiResponse> => {
+    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   createFollowNotification: async (
     followedUserId: string,
   ): Promise<ApiResponse> => {

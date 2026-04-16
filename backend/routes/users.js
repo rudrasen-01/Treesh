@@ -437,6 +437,8 @@ router.post("/:id/request-follow", authenticate, async (req, res) => {
     }
 
     // Avoid duplicates
+    let createdFollowRequest = false;
+
     if (
       !targetUser.followRequests?.some(
         (id) => id.toString() === currentUserIdString
@@ -444,6 +446,7 @@ router.post("/:id/request-follow", authenticate, async (req, res) => {
     ) {
       targetUser.followRequests = targetUser.followRequests || [];
       targetUser.followRequests.push(req.user._id);
+      createdFollowRequest = true;
     }
     if (
       !currentUser.sentFollowRequests?.some(
@@ -455,6 +458,29 @@ router.post("/:id/request-follow", authenticate, async (req, res) => {
     }
 
     await Promise.all([currentUser.save(), targetUser.save()]);
+
+    // Ensure notification exists for private follow request
+    if (createdFollowRequest) {
+      const existingRequestNotification = await Notification.findOne({
+        recipient: targetUser._id,
+        sender: currentUser._id,
+        type: "follow_request",
+        isRead: false,
+      });
+
+      if (!existingRequestNotification) {
+        await Notification.create({
+          recipient: targetUser._id,
+          sender: currentUser._id,
+          type: "follow_request",
+          title: "New follow request",
+          message: `${
+            currentUser.username || currentUser.name || "Someone"
+          } requested to follow you`,
+          category: "social",
+        });
+      }
+    }
 
     return res.json({ success: true, message: "Follow request sent" });
   } catch (e) {
@@ -481,6 +507,14 @@ router.post("/:id/cancel-request", authenticate, async (req, res) => {
     );
 
     await Promise.all([currentUser.save(), targetUser.save()]);
+
+    // Remove pending follow-request notifications when sender cancels request
+    await Notification.deleteMany({
+      recipient: targetUser._id,
+      sender: currentUser._id,
+      type: "follow_request",
+    });
+
     return res.json({ success: true, message: "Follow request canceled" });
   } catch (e) {
     return res.status(500).json({ error: e.message });
@@ -490,11 +524,46 @@ router.post("/:id/cancel-request", authenticate, async (req, res) => {
 // Get incoming follow requests for current user
 router.get("/me/follow-requests", authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .populate("followRequests", "username fullName avatar isVerified bio")
+    const currentUserId = req.user._id || req.user.id;
+    const user = await User.findById(currentUserId)
+      .populate(
+        "followRequests",
+        "username name fullName avatar profileImage isVerified bio"
+      )
       .select("followRequests");
     if (!user) return res.status(404).json({ error: "User not found" });
-    return res.json({ success: true, data: user.followRequests || [] });
+
+    const requestNotifications = await Notification.find({
+      recipient: currentUserId,
+      type: "follow_request",
+    })
+      .populate("sender", "username name fullName avatar profileImage isVerified bio")
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const notificationSenders = requestNotifications
+      .map((notification) => notification.sender)
+      .filter(Boolean)
+      .map((sender) => ({
+        _id: sender._id,
+        username: sender.username,
+        fullName: sender.fullName || sender.name || sender.username,
+        avatar: sender.avatar || sender.profileImage || null,
+        profileImage: sender.profileImage || sender.avatar || null,
+        isVerified: sender.isVerified || false,
+        bio: sender.bio || "",
+      }));
+
+    const mergedRequests = Array.from(
+      new Map(
+        [...(user.followRequests || []), ...notificationSenders].map((requestUser) => [
+          requestUser._id.toString(),
+          requestUser,
+        ])
+      ).values()
+    );
+
+    return res.json({ success: true, data: mergedRequests });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
@@ -531,6 +600,13 @@ router.post("/requests/:requesterId/accept", authenticate, async (req, res) => {
 
     await Promise.all([currentUser.save(), requester.save()]);
 
+    // Remove pending follow-request notifications for this pair (request consumed)
+    await Notification.deleteMany({
+      recipient: currentUser._id,
+      sender: requester._id,
+      type: "follow_request",
+    });
+
     // Notify requester their request was accepted
     try {
       await Notification.create({
@@ -541,6 +617,18 @@ router.post("/requests/:requesterId/accept", authenticate, async (req, res) => {
         message: `${
           currentUser.username || currentUser.name || "User"
         } accepted your follow request`,
+        category: "social",
+      });
+
+      // Notify recipient side about the resulting follow relationship transition
+      await Notification.create({
+        recipient: currentUser._id,
+        sender: requester._id,
+        type: "follow",
+        title: "New follower",
+        message: `${
+          requester.username || requester.name || "Someone"
+        } started following you`,
         category: "social",
       });
     } catch (notifyErr) {
@@ -573,6 +661,14 @@ router.post(
       ).filter((u) => u.toString() !== req.user._id.toString());
 
       await Promise.all([currentUser.save(), requester.save()]);
+
+      // Remove pending follow-request notifications when declined
+      await Notification.deleteMany({
+        recipient: currentUser._id,
+        sender: requester._id,
+        type: "follow_request",
+      });
+
       return res.json({ success: true, message: "Request declined" });
     } catch (e) {
       return res.status(500).json({ error: e.message });

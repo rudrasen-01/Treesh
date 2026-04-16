@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Check,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -34,6 +35,7 @@ type BackendNotification = {
     | "follow"
     | "follow_request"
     | "follow_request_accepted"
+    | "message"
     | "like"
     | "comment"
     | "mention"
@@ -110,73 +112,126 @@ export const NotificationPage = () => {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [followingBack, setFollowingBack] = useState<string[]>([]);
   const [followedBack, setFollowedBack] = useState<string[]>([]);
+  const [requestedBack, setRequestedBack] = useState<string[]>([]);
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [userToUnfollow, setUserToUnfollow] = useState<{
     id: string;
     name: string;
   } | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const res = await notificationsAPI.getNotifications();
-      if (res.success) {
-        const data = (res.data as any) || {};
-        const list: BackendNotification[] = dedupeNotifications(
-          data.notifications || [],
-        ).filter((notification) =>
-          !EXCLUDED_NOTIFICATION_TYPES.includes(notification.type),
-        );
-        setNotifications(list);
-        const newUnread =
-          data.unreadCount ?? list.filter((n) => !n.isRead).length;
-        setUnreadCount(newUnread);
+  const refreshNotifications = useCallback(async () => {
+    setLoading(true);
+    const res = await notificationsAPI.getNotifications();
+    if (res.success) {
+      const data = (res.data as any) || {};
+      const list: BackendNotification[] = dedupeNotifications(
+        data.notifications || [],
+      ).filter((notification) =>
+        !EXCLUDED_NOTIFICATION_TYPES.includes(notification.type),
+      );
+      setNotifications(list);
+      const newUnread =
+        data.unreadCount ?? list.filter((n) => !n.isRead).length;
+      setUnreadCount(newUnread);
 
-        const followNotifications = list.filter(
-          (n) =>
-            n.type === "follow" && n.sender && typeof n.sender === "object",
-        );
-        const alreadyFollowing: string[] = [];
+      const followNotifications = list.filter(
+        (n) => n.type === "follow" && n.sender && typeof n.sender === "object",
+      );
+      const alreadyFollowing: string[] = [];
+      const alreadyRequested: string[] = [];
 
-        for (const notification of followNotifications) {
-          const sender = notification.sender as any;
-          if (sender?._id) {
-            try {
-              const userRes = await usersAPI.getUserProfile(sender._id);
-              if (userRes.success && userRes.data?.isFollowing) {
+      for (const notification of followNotifications) {
+        const sender = notification.sender as any;
+        if (sender?._id) {
+          try {
+            const userRes = await usersAPI.getUserProfile(sender._id);
+            if (userRes.success && userRes.data) {
+              if (userRes.data.isFollowing) {
                 alreadyFollowing.push(sender._id);
+              } else if ((userRes.data as any).requested) {
+                alreadyRequested.push(sender._id);
               }
-            } catch (_) {}
-          }
+            }
+          } catch (_) {}
         }
-
-        setFollowedBack(alreadyFollowing);
-
-        window.dispatchEvent(
-          new CustomEvent("treesh:notifications-set", {
-            detail: { count: newUnread },
-          }),
-        );
       }
-      setLoading(false);
-    };
-    load();
+
+      setFollowedBack(alreadyFollowing);
+      setRequestedBack(alreadyRequested);
+
+      window.dispatchEvent(
+        new CustomEvent("treesh:notifications-set", {
+          detail: { count: newUnread },
+        }),
+      );
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    const loadRequests = async () => {
-      setLoadingRequests(true);
-      const res = await usersAPI.getIncomingFollowRequests();
-      if (res.success) {
-        const uniqueRequests = Array.from(
-          new Map((res.data || []).map((user: any) => [user._id, user])).values(),
-        );
-        setFollowRequests(uniqueRequests);
-      }
-      setLoadingRequests(false);
-    };
-    loadRequests();
+    refreshNotifications();
+  }, [refreshNotifications]);
+
+  const refreshRequests = useCallback(async () => {
+    setLoadingRequests(true);
+    const res = await usersAPI.getIncomingFollowRequests();
+    if (res.success) {
+      const uniqueRequests = Array.from(
+        new Map((res.data || []).map((user: any) => [user._id, user])).values(),
+      );
+      setFollowRequests(uniqueRequests);
+    }
+    setLoadingRequests(false);
   }, []);
+
+  useEffect(() => {
+    refreshRequests();
+  }, [refreshRequests]);
+
+  const requestUsersFromNotifications = notifications
+    .filter(
+      (notification) =>
+        notification.type === "follow_request" &&
+        notification.sender &&
+        typeof notification.sender === "object" &&
+        !!notification.sender._id,
+    )
+    .map((notification) => {
+      const sender = notification.sender as any;
+      return {
+        _id: sender._id,
+        username: sender.username || sender.name || "User",
+        fullName: sender.fullName || sender.name || sender.username || "",
+        avatar: sender.avatar || sender.profileImage || "",
+        profileImage: sender.profileImage || sender.avatar || "",
+        notificationId: notification._id,
+        isRead: notification.isRead,
+      };
+    });
+
+  const requestNotificationBySender = new Map(
+    requestUsersFromNotifications.map((request: any) => [request._id, request]),
+  );
+
+  const requestsList = Array.from(
+    new Map(
+      [...followRequests, ...requestUsersFromNotifications].map((user: any) => [
+        user._id,
+        {
+          ...user,
+          notificationId:
+            user.notificationId ||
+            requestNotificationBySender.get(user._id)?.notificationId,
+          isRead:
+            user.isRead ?? requestNotificationBySender.get(user._id)?.isRead,
+        },
+      ]),
+    ).values(),
+  );
+
+  const unreadFollowRequestsCount = requestUsersFromNotifications.filter(
+    (request: any) => request.isRead === false,
+  ).length;
 
   const allNotifications = notifications;
   const allUnreadCount = allNotifications.filter(
@@ -194,7 +249,7 @@ export const NotificationPage = () => {
       case "follow":
         return <UserPlus className="w-4 h-4 text-green-500" />;
       case "follow_request":
-        return <UserPlus className="w-4 h-4 text-yellow-500" />;
+        return <UserPlus className="w-4 h-4 text-red-500" />;
       case "follow_request_accepted":
         return <UserCheck className="w-4 h-4 text-green-600" />;
       case "psa":
@@ -211,7 +266,7 @@ export const NotificationPage = () => {
       case "mention": return "bg-blue-50 dark:bg-blue-950/50";
       case "follow":
       case "follow_request_accepted": return "bg-green-50 dark:bg-green-950/50";
-      case "follow_request": return "bg-yellow-50 dark:bg-yellow-950/40";
+      case "follow_request": return "bg-red-50 dark:bg-red-950/40";
       case "psa": return "bg-orange-50 dark:bg-orange-950/40";
       default: return "bg-muted";
     }
@@ -243,7 +298,32 @@ export const NotificationPage = () => {
       window.dispatchEvent(
         new CustomEvent("treesh:notifications-set", { detail: { count: 0 } }),
       );
+      await Promise.all([refreshNotifications(), refreshRequests()]);
     }
+  };
+
+  const deleteNotification = async (notification: BackendNotification) => {
+    const res = await notificationsAPI.deleteNotification(notification._id);
+    if (!res.success) {
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const wasUnread = !notification.isRead;
+    setNotifications((prev) => prev.filter((n) => n._id !== notification._id));
+
+    if (wasUnread) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      window.dispatchEvent(
+        new CustomEvent("treesh:notifications-decrement", { detail: { by: 1 } }),
+      );
+    }
+
+    toast({ title: "Notification deleted" });
   };
 
   /**
@@ -301,10 +381,7 @@ export const NotificationPage = () => {
         title: "Request accepted",
         description: "You're now followed by this user.",
       });
-      setFollowRequests((prev) => prev.filter((u) => u._id !== requesterId));
-      setNotifications((prev) => 
-        prev.filter((n) => !(n.type === "follow_request" && typeof n.sender === "object" && n.sender?._id === requesterId))
-      );
+      await Promise.all([refreshRequests(), refreshNotifications()]);
     }
   };
 
@@ -312,10 +389,7 @@ export const NotificationPage = () => {
     const res = await usersAPI.declineFollowRequest(requesterId);
     if (res.success) {
       toast({ title: "Request declined" });
-      setFollowRequests((prev) => prev.filter((u) => u._id !== requesterId));
-      setNotifications((prev) => 
-        prev.filter((n) => !(n.type === "follow_request" && typeof n.sender === "object" && n.sender?._id === requesterId))
-      );
+      await Promise.all([refreshRequests(), refreshNotifications()]);
     }
   };
 
@@ -325,8 +399,19 @@ export const NotificationPage = () => {
     try {
       const res = await usersAPI.followUser(senderId);
       if (res.success) {
-        toast({ title: "Following back", description: `You are now following ${senderName}` });
-        setFollowedBack((prev) => [...prev, senderId]);
+        const nowFollowing = !!res.data?.following;
+        const nowRequested = !!res.data?.requested;
+
+        if (nowFollowing) {
+          toast({ title: "Following back", description: `You are now following ${senderName}` });
+          setFollowedBack((prev) => (prev.includes(senderId) ? prev : [...prev, senderId]));
+          setRequestedBack((prev) => prev.filter((id) => id !== senderId));
+        } else if (nowRequested) {
+          toast({ title: "Request sent", description: `Follow request sent to ${senderName}` });
+          setRequestedBack((prev) => (prev.includes(senderId) ? prev : [...prev, senderId]));
+          setFollowedBack((prev) => prev.filter((id) => id !== senderId));
+        }
+
         const followNotification = notifications.find(
           (n) =>
             n.type === "follow" &&
@@ -346,6 +431,38 @@ export const NotificationPage = () => {
     }
   };
 
+  const handleCancelFollowBackRequest = async (
+    senderId: string,
+    senderName: string,
+  ) => {
+    if (!senderId) return;
+    setFollowingBack((prev) => [...prev, senderId]);
+    try {
+      const res = await usersAPI.cancelFollowRequest(senderId);
+      if (res.success) {
+        toast({
+          title: "Request canceled",
+          description: `Follow request canceled for ${senderName}`,
+        });
+        setRequestedBack((prev) => prev.filter((id) => id !== senderId));
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to cancel request",
+          variant: "destructive",
+        });
+      }
+    } catch (_) {
+      toast({
+        title: "Error",
+        description: "Failed to cancel request",
+        variant: "destructive",
+      });
+    } finally {
+      setFollowingBack((prev) => prev.filter((id) => id !== senderId));
+    }
+  };
+
   const handleUnfollowClick = (senderId: string, senderName: string) => {
     setUserToUnfollow({ id: senderId, name: senderName });
     setShowUnfollowConfirm(true);
@@ -359,6 +476,7 @@ export const NotificationPage = () => {
       if (res.success) {
         toast({ title: "Unfollowed", description: `You unfollowed ${userToUnfollow.name}` });
         setFollowedBack((prev) => prev.filter((id) => id !== userToUnfollow.id));
+        setRequestedBack((prev) => prev.filter((id) => id !== userToUnfollow.id));
       } else {
         toast({ title: "Error", description: "Failed to unfollow", variant: "destructive" });
       }
@@ -419,19 +537,33 @@ export const NotificationPage = () => {
             >
               <Button
                 size="sm"
-                variant={followedBack.includes(sender._id) ? "default" : "outline"}
+                variant={
+                  followedBack.includes(sender._id)
+                    ? "default"
+                    : requestedBack.includes(sender._id)
+                    ? "secondary"
+                    : "outline"
+                }
                 className="h-7 px-3 text-xs"
                 disabled={followingBack.includes(sender._id)}
                 onClick={() =>
                   followedBack.includes(sender._id)
                     ? handleUnfollowClick(sender._id, senderName)
+                    : requestedBack.includes(sender._id)
+                    ? handleCancelFollowBackRequest(sender._id, senderName)
                     : handleFollowBack(sender._id, senderName)
                 }
               >
                 {followingBack.includes(sender._id)
-                  ? (followedBack.includes(sender._id) ? "Unfollowing..." : "Following...")
+                  ? followedBack.includes(sender._id)
+                    ? "Unfollowing..."
+                    : requestedBack.includes(sender._id)
+                    ? "Canceling..."
+                    : "Following..."
                   : followedBack.includes(sender._id)
                   ? "Following ✓"
+                  : requestedBack.includes(sender._id)
+                  ? "Requested"
                   : "Follow Back"}
               </Button>
               <Button
@@ -480,6 +612,18 @@ export const NotificationPage = () => {
 
         {/* Right side: unread dot + chevron */}
         <div className="flex flex-col items-center gap-2 flex-shrink-0 self-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-muted-foreground hover:text-red-500"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteNotification(n);
+            }}
+            aria-label="Delete notification"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
           {!n.isRead && (
             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
           )}
@@ -537,9 +681,9 @@ export const NotificationPage = () => {
             </TabsTrigger>
             <TabsTrigger value="requests" className="rounded-lg text-sm font-medium">
               Follow Requests
-              {followRequests.length > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-orange-500 text-white text-[10px] px-1.5 min-w-[18px] h-[18px]">
-                  {followRequests.length}
+              {unreadFollowRequestsCount > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] px-1.5 min-w-[18px] h-[18px]">
+                  {unreadFollowRequestsCount}
                 </span>
               )}
             </TabsTrigger>
@@ -582,11 +726,11 @@ export const NotificationPage = () => {
                   Loading follow requests...
                 </div>
               )}
-              {!loadingRequests && followRequests.length === 0 && (
+              {!loadingRequests && requestsList.length === 0 && (
                 <div className="text-sm text-muted-foreground">No pending requests</div>
               )}
               {!loadingRequests &&
-                followRequests.map((u) => (
+                requestsList.map((u: any) => (
                   <Card key={u._id} className="bg-card border-border">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -602,8 +746,11 @@ export const NotificationPage = () => {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="text-sm font-medium text-foreground">
-                              {u.username}
+                            <div className="text-sm font-medium text-foreground flex items-center gap-2">
+                              <span>{u.username}</span>
+                              {u.isRead === false && (
+                                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                              )}
                             </div>
                             {u.fullName && (
                               <div className="text-xs text-muted-foreground">
