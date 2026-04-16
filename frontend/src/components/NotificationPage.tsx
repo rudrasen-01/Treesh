@@ -50,6 +50,41 @@ type BackendNotification = {
   referenceId?: string;
 };
 
+const normalizeSenderId = (notification: BackendNotification) => {
+  if (notification.sender && typeof notification.sender === "object") {
+    return notification.sender._id;
+  }
+  if (typeof notification.sender === "string") {
+    return notification.sender;
+  }
+  return "";
+};
+
+const dedupeNotifications = (list: BackendNotification[]) => {
+  const seen = new Set<string>();
+  const deduped: BackendNotification[] = [];
+
+  for (const notification of list) {
+    const senderId = normalizeSenderId(notification);
+    const shouldDedupeFollowType =
+      notification.type === "follow" ||
+      notification.type === "follow_request" ||
+      notification.type === "follow_request_accepted";
+
+    if (shouldDedupeFollowType && senderId) {
+      const key = `${notification.type}:${senderId}:${notification.recipient}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+    }
+
+    deduped.push(notification);
+  }
+
+  return deduped;
+};
+
 /** Navigate to a user's profile page */
 const goToUserProfile = (userId: string) => {
   window.dispatchEvent(
@@ -68,7 +103,7 @@ export const NotificationPage = () => {
   const isMobile = useIsMobile();
   const [notifications, setNotifications] = useState<BackendNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [, setUnreadCount] = useState(0);
   const [followRequests, setFollowRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [followingBack, setFollowingBack] = useState<string[]>([]);
@@ -85,7 +120,9 @@ export const NotificationPage = () => {
       const res = await notificationsAPI.getNotifications();
       if (res.success) {
         const data = (res.data as any) || {};
-        const list: BackendNotification[] = data.notifications || [];
+        const list: BackendNotification[] = dedupeNotifications(
+          data.notifications || [],
+        );
         setNotifications(list);
         const newUnread =
           data.unreadCount ?? list.filter((n) => !n.isRead).length;
@@ -127,12 +164,22 @@ export const NotificationPage = () => {
       setLoadingRequests(true);
       const res = await usersAPI.getIncomingFollowRequests();
       if (res.success) {
-        setFollowRequests(res.data || []);
+        const uniqueRequests = Array.from(
+          new Map((res.data || []).map((user: any) => [user._id, user])).values(),
+        );
+        setFollowRequests(uniqueRequests);
       }
       setLoadingRequests(false);
     };
     loadRequests();
   }, []);
+
+  const allNotifications = notifications.filter(
+    (notification) => notification.type !== "follow_request",
+  );
+  const allUnreadCount = allNotifications.filter(
+    (notification) => !notification.isRead,
+  ).length;
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -462,12 +509,12 @@ export const NotificationPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
               <p className="text-muted-foreground mt-1 text-sm">
-                {unreadCount > 0
-                  ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+                {allUnreadCount > 0
+                  ? `${allUnreadCount} unread notification${allUnreadCount !== 1 ? "s" : ""}`
                   : "You're all caught up!"}
               </p>
             </div>
-            {unreadCount > 0 && (
+            {allUnreadCount > 0 && (
               <Button variant="outline" size="sm" onClick={markAllAsRead} className="text-xs">
                 <Check className="h-3 w-3 mr-1" />
                 Mark all as read
@@ -480,9 +527,9 @@ export const NotificationPage = () => {
           <TabsList className="mb-4 w-full grid grid-cols-2 bg-muted p-1 rounded-xl h-10">
             <TabsTrigger value="all" className="rounded-lg text-sm font-medium">
               All
-              {unreadCount > 0 && (
+              {allUnreadCount > 0 && (
                 <span className="ml-2 inline-flex items-center justify-center rounded-full bg-blue-500 text-white text-[10px] px-1.5 min-w-[18px] h-[18px]">
-                  {unreadCount}
+                  {allUnreadCount}
                 </span>
               )}
             </TabsTrigger>
@@ -512,7 +559,7 @@ export const NotificationPage = () => {
                 </>
               )}
 
-              {!loading && notifications.length === 0 && (
+              {!loading && allNotifications.length === 0 && (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                     <Bell className="h-8 w-8 text-muted-foreground" />
@@ -522,7 +569,7 @@ export const NotificationPage = () => {
                 </div>
               )}
 
-              {!loading && notifications.map((n) => renderNotificationCard(n))}
+              {!loading && allNotifications.map((n) => renderNotificationCard(n))}
             </div>
           </TabsContent>
 

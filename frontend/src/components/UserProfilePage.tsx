@@ -25,7 +25,6 @@ import {
 import {
   usersAPI,
   postsAPI,
-  notificationsAPI,
   UserProfile,
   storiesAPI,
 } from "@/services/api";
@@ -292,17 +291,6 @@ export const UserProfilePage = ({
               },
             }),
           );
-
-          // Create follow notification for the followed user
-          try {
-            await notificationsAPI.createFollowNotification(userId);
-          } catch (notificationError) {
-            console.error(
-              "Failed to create follow notification:",
-              notificationError,
-            );
-            // Don't show error to user as this is not critical
-          }
         }
 
         toast({

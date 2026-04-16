@@ -266,6 +266,8 @@ router.post("/:id/follow", authenticate, async (req, res) => {
     const isFollowing = currentUser.following.some(
       (id) => id.toString() === targetIdString
     );
+    let createdNewFollowRequest = false;
+    let createdNewFollow = false;
     console.log(`Is currently following: ${isFollowing}`);
 
     // If already following, toggle to unfollow
@@ -291,6 +293,7 @@ router.post("/:id/follow", authenticate, async (req, res) => {
         if (!alreadyRequested) {
           targetUser.followRequests = targetUser.followRequests || [];
           targetUser.followRequests.push(req.user._id);
+          createdNewFollowRequest = true;
         }
         const alreadySent = (currentUser.sentFollowRequests || []).some(
           (id) => id.toString() === targetIdString
@@ -303,6 +306,7 @@ router.post("/:id/follow", authenticate, async (req, res) => {
         console.log("FOLLOWING USER");
         currentUser.following.push(req.params.id);
         targetUser.followers.push(req.user._id);
+        createdNewFollow = true;
       }
     }
 
@@ -349,7 +353,10 @@ router.post("/:id/follow", authenticate, async (req, res) => {
     // Fire-and-forget: create notifications for follow or follow-request events
     try {
       if (!isFollowing) {
-        if (targetUser.privacy?.profileVisibility === "private") {
+        if (
+          targetUser.privacy?.profileVisibility === "private" &&
+          createdNewFollowRequest
+        ) {
           // Follow request notification to target user
           await Notification.create({
             recipient: targetUser._id,
@@ -361,7 +368,10 @@ router.post("/:id/follow", authenticate, async (req, res) => {
             } requested to follow you`,
             category: "social",
           });
-        } else {
+        } else if (
+          targetUser.privacy?.profileVisibility !== "private" &&
+          createdNewFollow
+        ) {
           // Direct follow notification to target user
           await Notification.create({
             recipient: targetUser._id,
