@@ -50,6 +50,13 @@ type BackendNotification = {
   referenceId?: string;
 };
 
+const DISPLAY_NOTIFICATION_TYPES: BackendNotification["type"][] = [
+  "follow_request",
+  "follow_request_accepted",
+  "like",
+  "comment",
+];
+
 const normalizeSenderId = (notification: BackendNotification) => {
   if (notification.sender && typeof notification.sender === "object") {
     return notification.sender._id;
@@ -122,6 +129,8 @@ export const NotificationPage = () => {
         const data = (res.data as any) || {};
         const list: BackendNotification[] = dedupeNotifications(
           data.notifications || [],
+        ).filter((notification) =>
+          DISPLAY_NOTIFICATION_TYPES.includes(notification.type),
         );
         setNotifications(list);
         const newUnread =
@@ -174,9 +183,7 @@ export const NotificationPage = () => {
     loadRequests();
   }, []);
 
-  const allNotifications = notifications.filter(
-    (notification) => notification.type !== "follow_request",
-  );
+  const allNotifications = notifications;
   const allUnreadCount = allNotifications.filter(
     (notification) => !notification.isRead,
   ).length;
