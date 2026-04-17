@@ -32,7 +32,15 @@ const userSettingsSchema = new mongoose.Schema(
         enum: ["public", "friends", "private"],
         default: "public",
       },
+      isPrivate: {
+        type: Boolean,
+        default: false,
+      },
       showOnlineStatus: {
+        type: Boolean,
+        default: true,
+      },
+      allowMessages: {
         type: Boolean,
         default: true,
       },
@@ -46,6 +54,34 @@ const userSettingsSchema = new mongoose.Schema(
         default: true,
       },
       allowProfileViews: {
+        type: Boolean,
+        default: true,
+      },
+      showLocation: {
+        type: Boolean,
+        default: true,
+      },
+      showWebsite: {
+        type: Boolean,
+        default: true,
+      },
+      showPhone: {
+        type: Boolean,
+        default: false,
+      },
+      allowTagging: {
+        type: Boolean,
+        default: true,
+      },
+      allowMentions: {
+        type: Boolean,
+        default: true,
+      },
+      showActivityStatus: {
+        type: Boolean,
+        default: true,
+      },
+      allowStoryViews: {
         type: Boolean,
         default: true,
       },

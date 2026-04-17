@@ -374,7 +374,7 @@ export const UserProfilePage = ({
     setShowPostDetail(true);
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto p-4">
@@ -433,9 +433,12 @@ export const UserProfilePage = ({
   }
 
   const isOwnProfile = currentUser?.id === userId;
+  const profileVisibility = user?.privacy?.profileVisibility || "public";
+  const canViewPrivateContent =
+    isOwnProfile || profileVisibility === "public" || isFollowing;
 
   const openUserStories = async () => {
-    if (!isFollowing) {
+    if (!canViewPrivateContent) {
       toast({
         title: "Follow to view stories",
         description: "You need to follow this user to view their stories.",
@@ -524,7 +527,14 @@ export const UserProfilePage = ({
               </div>
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-card p-[4px] ring-1 ring-border">
                 <Avatar className="w-full h-full">
-                  <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                  <AvatarImage
+                    src={
+                      user.avatar ||
+                      user.profileImage ||
+                      user.profilePicture ||
+                      "/placeholder.svg"
+                    }
+                  />
                   <AvatarFallback className="text-2xl sm:text-3xl bg-muted">
                     {user.fullName?.charAt(0) ||
                       user.username?.charAt(0) ||
@@ -687,8 +697,7 @@ export const UserProfilePage = ({
             </TabsList>
 
             <TabsContent value="posts" className="mt-0">
-              {!isOwnProfile && !isFollowing &&
-              ((user as any)?.privacy?.profileVisibility === "private" || (user as any)?.privacy?.profileVisibility === "friends") ? (
+              {!canViewPrivateContent ? (
                 <div className="text-center py-12">
                   <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -772,8 +781,7 @@ export const UserProfilePage = ({
             </TabsContent>
 
             <TabsContent value="reels" className="mt-0">
-              {!isOwnProfile && !isFollowing &&
-              ((user as any)?.privacy?.profileVisibility === "private" || (user as any)?.privacy?.profileVisibility === "friends") ? (
+              {!canViewPrivateContent ? (
                 <div className="text-center py-12">
                   <Lock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">

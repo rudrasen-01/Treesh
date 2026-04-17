@@ -28,16 +28,33 @@ export interface RegisterData {
 
 export interface UserProfile {
   id: string;
+  _id?: string;
   username: string;
   email: string;
   fullName: string;
+  name?: string;
   avatar?: string;
+  profileImage?: string;
+  profilePicture?: string;
   bio?: string;
   location?: string;
   website?: string;
   isStreamer: boolean;
+  isVerified?: boolean;
+  verified?: boolean;
+  privacy?: {
+    profileVisibility?: "public" | "friends" | "private";
+    showOnlineStatus?: boolean;
+    allowMessagesFrom?: "everyone" | "friends" | "none";
+    showLastSeen?: boolean;
+    allowProfileViews?: boolean;
+  };
+  isOnline?: boolean;
+  lastSeen?: string;
   followingCount?: number;
   followerCount?: number;
+  requested?: boolean;
+  isFollowing?: boolean;
   streamerProfile?: {
     category: string;
     totalViews: number;
@@ -112,6 +129,43 @@ export interface Notification {
   isRead: boolean;
   relatedId?: string; // postId, commentId, etc.
 }
+
+const normalizeUserProfile = (raw: any): UserProfile => {
+  const followerCount =
+    typeof raw?.followerCount === "number"
+      ? raw.followerCount
+      : Array.isArray(raw?.followers)
+      ? raw.followers.length
+      : 0;
+
+  const followingCount =
+    typeof raw?.followingCount === "number"
+      ? raw.followingCount
+      : Array.isArray(raw?.following)
+      ? raw.following.length
+      : 0;
+
+  return {
+    ...(raw || {}),
+    id: String(raw?.id || raw?._id || ""),
+    _id: raw?._id ? String(raw._id) : undefined,
+    fullName: raw?.fullName || raw?.name || "",
+    name: raw?.name || raw?.fullName,
+    avatar: raw?.avatar || raw?.profileImage || raw?.profilePicture || "",
+    profileImage: raw?.profileImage || raw?.avatar || raw?.profilePicture,
+    profilePicture: raw?.profilePicture || raw?.avatar || raw?.profileImage,
+    isStreamer: Boolean(raw?.isStreamer),
+    isVerified: Boolean(raw?.isVerified ?? raw?.verified),
+    verified: Boolean(raw?.verified ?? raw?.isVerified),
+    followerCount,
+    followingCount,
+  } as UserProfile;
+};
+
+const normalizeUserList = (raw: any): UserProfile[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => normalizeUserProfile(item));
+};
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -198,7 +252,11 @@ export const authAPI = {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserProfile(resp.data);
+    }
+    return resp;
   },
 
   checkUsername: async (
@@ -252,7 +310,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserProfile(resp.data);
+    }
+    return resp;
   },
 
   updateProfile: async (
@@ -264,12 +326,9 @@ export const usersAPI = {
       body: JSON.stringify(data),
     });
     const resp = await handleResponse<UserProfile>(response);
-    // Normalize server field 'name' -> 'fullName' for consistency
+    // Normalize profile payload shape for consistent UI consumption.
     if (resp.success && resp.data) {
-      const d: any = resp.data as any;
-      if (d && d.name && !d.fullName) {
-        resp.data = { ...d, fullName: d.name } as any;
-      }
+      resp.data = normalizeUserProfile(resp.data);
     }
     return resp;
   },
@@ -298,7 +357,11 @@ export const usersAPI = {
         headers: getAuthHeaders(),
       },
     );
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   getUserProfile: async (
@@ -315,7 +378,20 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<
+      UserProfile & {
+        isFollowing?: boolean;
+        followerCount?: number;
+        followingCount?: number;
+      }
+    >(response);
+    if (resp.success && resp.data) {
+      resp.data = {
+        ...(resp.data as any),
+        ...normalizeUserProfile(resp.data),
+      };
+    }
+    return resp;
   },
 
   followUser: async (
@@ -362,7 +438,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/me/follow-requests`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   acceptFollowRequest: async (requesterId: string): Promise<ApiResponse> => {
@@ -392,7 +472,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/followers`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   // Get user's following
@@ -400,7 +484,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/following`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   // Get current user's followers
@@ -408,7 +496,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/me/followers`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   // Get current user's following
@@ -416,7 +508,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/me/following`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   // Get user suggestions
@@ -424,7 +520,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/suggestions?limit=${limit}`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   // Get blocked users list
@@ -432,7 +532,11 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/me/blocked`, {
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+    const resp = await handleResponse<UserProfile[]>(response);
+    if (resp.success && resp.data) {
+      resp.data = normalizeUserList(resp.data);
+    }
+    return resp;
   },
 
   // Block a user

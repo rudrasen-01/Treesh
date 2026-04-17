@@ -100,8 +100,18 @@ router.put(
     body("profileVisibility").optional().isIn(["public", "friends", "private"]),
     body("showOnlineStatus").optional().isBoolean(),
     body("allowMessages").optional().isBoolean(),
+    body("allowMessagesFrom").optional().isIn(["everyone", "friends", "none"]),
     body("allowFriendRequests").optional().isBoolean(),
     body("showActivityStatus").optional().isBoolean(),
+    body("showLastSeen").optional().isBoolean(),
+    body("allowProfileViews").optional().isBoolean(),
+    body("isPrivate").optional().isBoolean(),
+    body("showLocation").optional().isBoolean(),
+    body("showWebsite").optional().isBoolean(),
+    body("showPhone").optional().isBoolean(),
+    body("allowTagging").optional().isBoolean(),
+    body("allowMentions").optional().isBoolean(),
+    body("allowStoryViews").optional().isBoolean(),
     body("allowAnalytics").optional().isBoolean(),
     body("allowCookies").optional().isBoolean(),
   ],
@@ -128,8 +138,18 @@ router.put(
       if (typeof req.body.profileVisibility === "string") {
         privacyUpdate["privacy.profileVisibility"] = req.body.profileVisibility;
       }
+      if (typeof req.body.isPrivate === "boolean") {
+        privacyUpdate["privacy.isPrivate"] = req.body.isPrivate;
+        // Sync isPrivate with profileVisibility
+        if (req.body.isPrivate) {
+          privacyUpdate["privacy.profileVisibility"] = "private";
+        }
+      }
       if (typeof req.body.showOnlineStatus === "boolean") {
         privacyUpdate["privacy.showOnlineStatus"] = req.body.showOnlineStatus;
+      }
+      if (typeof req.body.showLastSeen === "boolean") {
+        privacyUpdate["privacy.showLastSeen"] = req.body.showLastSeen;
       }
       if (typeof req.body.allowMessages === "boolean") {
         // Map boolean to allowMessagesFrom setting: true => everyone, false => none
@@ -140,12 +160,31 @@ router.put(
       if (typeof req.body.allowMessagesFrom === "string") {
         privacyUpdate["privacy.allowMessagesFrom"] = req.body.allowMessagesFrom;
       }
-      if (typeof req.body.showLastSeen === "boolean") {
-        privacyUpdate["privacy.showLastSeen"] = req.body.showLastSeen;
-      }
       if (typeof req.body.allowProfileViews === "boolean") {
         privacyUpdate["privacy.allowProfileViews"] = req.body.allowProfileViews;
       }
+      if (typeof req.body.showLocation === "boolean") {
+        privacyUpdate["privacy.showLocation"] = req.body.showLocation;
+      }
+      if (typeof req.body.showWebsite === "boolean") {
+        privacyUpdate["privacy.showWebsite"] = req.body.showWebsite;
+      }
+      if (typeof req.body.showPhone === "boolean") {
+        privacyUpdate["privacy.showPhone"] = req.body.showPhone;
+      }
+      if (typeof req.body.allowTagging === "boolean") {
+        privacyUpdate["privacy.allowTagging"] = req.body.allowTagging;
+      }
+      if (typeof req.body.allowMentions === "boolean") {
+        privacyUpdate["privacy.allowMentions"] = req.body.allowMentions;
+      }
+      if (typeof req.body.showActivityStatus === "boolean") {
+        privacyUpdate["privacy.showActivityStatus"] = req.body.showActivityStatus;
+      }
+      if (typeof req.body.allowStoryViews === "boolean") {
+        privacyUpdate["privacy.allowStoryViews"] = req.body.allowStoryViews;
+      }
+      
       if (Object.keys(privacyUpdate).length > 0) {
         await User.findByIdAndUpdate(req.user.id, { $set: privacyUpdate });
       }

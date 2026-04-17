@@ -1,4 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useCallback, useRef, useState } from "react";
+import Cropper from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 import {
   Dialog,
   DialogContent,
@@ -7,30 +9,98 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import {
-  Upload,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  Crop,
-  Check,
-  X,
-} from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, RotateCw, Check, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface ProfilePictureUploadProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (imageData: string) => void;
+  onSave: (imageData: string) => Promise<boolean> | boolean;
   currentAvatar?: string;
 }
 
-interface CropArea {
+interface Area {
   x: number;
   y: number;
   width: number;
   height: number;
 }
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (error) => reject(error));
+    image.setAttribute("crossOrigin", "anonymous");
+    image.src = url;
+  });
+
+const getRadianAngle = (degreeValue: number) => (degreeValue * Math.PI) / 180;
+
+const rotateSize = (width: number, height: number, rotation: number) => {
+  const rotRad = getRadianAngle(rotation);
+  return {
+    width:
+      Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+    height:
+      Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+  };
+};
+
+const getCroppedImage = async (
+  imageSrc: string,
+  pixelCrop: Area,
+  rotation = 0,
+): Promise<string> => {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("Could not get canvas context");
+  }
+
+  const rotRad = getRadianAngle(rotation);
+  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(
+    image.width,
+    image.height,
+    rotation,
+  );
+
+  canvas.width = bBoxWidth;
+  canvas.height = bBoxHeight;
+
+  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
+  ctx.rotate(rotRad);
+  ctx.translate(-image.width / 2, -image.height / 2);
+  ctx.drawImage(image, 0, 0);
+
+  const outCanvas = document.createElement("canvas");
+  const outCtx = outCanvas.getContext("2d");
+  if (!outCtx) {
+    throw new Error("Could not get output canvas context");
+  }
+
+  const outputSize = 512;
+  outCanvas.width = outputSize;
+  outCanvas.height = outputSize;
+  outCtx.imageSmoothingEnabled = true;
+  outCtx.imageSmoothingQuality = "high";
+
+  outCtx.drawImage(
+    canvas,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    outputSize,
+    outputSize,
+  );
+
+  return outCanvas.toDataURL("image/jpeg", 0.92);
+};
 
 export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
   isOpen,
@@ -38,23 +108,14 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
   onSave,
   currentAvatar,
 }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageSrc, setImageSrc] = useState<string>("");
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [cropArea, setCropArea] = useState<CropArea>({
-    x: 0,
-    y: 0,
-    width: 200,
-    height: 200,
-  });
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeHandle, setResizeHandle] = useState<string>("");
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,28 +140,13 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         return;
       }
 
-      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setImageSrc(result);
+        setCrop({ x: 0, y: 0 });
         setZoom(1);
         setRotation(0);
-        // setCropArea({ x: 0, y: 0, width: 200, height: 200 });
-        reader.onload = (e) => {
-          const result = e.target?.result as string;
-          setImageSrc(result);
-          setZoom(1);
-          setRotation(0);
-
-          // center crop
-          setCropArea({
-            x: 100,
-            y: 100,
-            width: 200,
-            height: 200,
-          });
-        };
       };
       reader.readAsDataURL(file);
     }
@@ -124,137 +170,22 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
     if (files.length > 0) {
       const file = files[0];
       if (file.type.startsWith("image/")) {
-        setSelectedFile(file);
         const reader = new FileReader();
         reader.onload = (e) => {
           const result = e.target?.result as string;
           setImageSrc(result);
+          setCrop({ x: 0, y: 0 });
           setZoom(1);
           setRotation(0);
-          setCropArea({ x: 0, y: 0, width: 200, height: 200 });
         };
         reader.readAsDataURL(file);
       }
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent, handle?: string) => {
-    if (handle) {
-      setIsResizing(true);
-      setResizeHandle(handle);
-    } else {
-      setIsDragging(true);
-    }
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (isDragging && !isResizing) {
-        const deltaX = e.clientX - dragStart.x;
-        const deltaY = e.clientY - dragStart.y;
-
-        setCropArea((prev) => ({
-          ...prev,
-          x: Math.max(0, Math.min(400 - prev.width, prev.x + deltaX)),
-          y: Math.max(0, Math.min(400 - prev.height, prev.y + deltaY)),
-        }));
-
-        setDragStart({ x: e.clientX, y: e.clientY });
-      } else if (isResizing) {
-        const deltaX = e.clientX - dragStart.x;
-        const deltaY = e.clientY - dragStart.y;
-
-        // setCropArea((prev) => {
-        //   let newWidth = prev.width;
-        //   let newHeight = prev.height;
-        //   let newX = prev.x;
-        //   let newY = prev.y;
-        setCropArea((prev) => {
-          let size = prev.width; // ek hi size rakhenge (square)
-          let newX = prev.x;
-          let newY = prev.y;
-
-          // switch (resizeHandle) {
-          //   case "nw":
-          //     newWidth = Math.max(50, prev.width - deltaX);
-          //     newHeight = Math.max(50, prev.height - deltaY);
-          //     newX = prev.x + (prev.width - newWidth);
-          //     newY = prev.y + (prev.height - newHeight);
-          //     break;
-          //   case "ne":
-          //     newWidth = Math.max(50, prev.width + deltaX);
-          //     newHeight = Math.max(50, prev.height - deltaY);
-          //     newY = prev.y + (prev.height - newHeight);
-          //     break;
-          //   case "sw":
-          //     newWidth = Math.max(50, prev.width - deltaX);
-          //     newHeight = Math.max(50, prev.height + deltaY);
-          //     newX = prev.x + (prev.width - newWidth);
-          //     break;
-          //   case "se":
-          //     newWidth = Math.max(50, prev.width + deltaX);
-          //     newHeight = Math.max(50, prev.height + deltaY);
-          //     break;
-          // }
-          switch (resizeHandle) {
-            case "nw":
-              size = Math.max(50, prev.width - deltaX);
-              newX = prev.x + (prev.width - size);
-              newY = prev.y + (prev.height - size);
-              break;
-
-            case "ne":
-              size = Math.max(50, prev.width + deltaX);
-              newY = prev.y + (prev.height - size);
-              break;
-
-            case "sw":
-              size = Math.max(50, prev.width - deltaX);
-              newX = prev.x + (prev.width - size);
-              break;
-
-            case "se":
-              size = Math.max(50, prev.width + deltaX);
-              break;
-          }
-          // return {
-          //   x: Math.max(0, Math.min(400 - newWidth, newX)),
-          //   y: Math.max(0, Math.min(400 - newHeight, newY)),
-          //   width: Math.min(400, newWidth),
-          //   height: Math.min(400, newHeight),
-          // };
-
-          return {
-            x: Math.max(0, Math.min(400 - size, newX)),
-            y: Math.max(0, Math.min(400 - size, newY)),
-            width: Math.min(400, size),
-            height: Math.min(400, size),
-          };
-        });
-
-        setDragStart({ x: e.clientX, y: e.clientY });
-      }
-    },
-    [isDragging, isResizing, dragStart, resizeHandle],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
-    setResizeHandle("");
+  const onCropComplete = useCallback((_croppedArea: Area, pixels: Area) => {
+    setCroppedAreaPixels(pixels);
   }, []);
-
-  useEffect(() => {
-    if (isDragging || isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-    }
-  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   const handleZoomChange = (value: number[]) => {
     setZoom(value[0]);
@@ -264,139 +195,45 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
     setRotation(value[0]);
   };
 
-  // const handleSave = () => {
-  //   if (!imageSrc || !canvasRef.current) return;
+  const handleSave = async () => {
+    if (!imageSrc || !croppedAreaPixels || isSaving) return;
 
-  //   const canvas = canvasRef.current;
-  //   const ctx = canvas.getContext("2d");
-  //   if (!ctx) return;
-
-  //   // Set canvas size to crop area
-  //   // canvas.width = cropArea.width;
-  //   // canvas.height = cropArea.height;
-  //   // const OUTPUT_SIZE = 400;
-  //   const OUTPUT_SIZE = 400; // fixed square output
-  //   canvas.width = OUTPUT_SIZE;
-  //   canvas.height = OUTPUT_SIZE;
-  //   // Clear canvas
-  //   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  //   // Create temporary canvas for transformations
-  //   const tempCanvas = document.createElement("canvas");
-  //   const tempCtx = tempCanvas.getContext("2d");
-  //   if (!tempCtx) return;
-
-  //   const img = new Image();
-  //   img.onload = () => {
-  //     // Set temp canvas size
-  //     tempCanvas.width = img.width;
-  //     tempCanvas.height = img.height;
-
-  //     // Apply transformations
-  //     tempCtx.save();
-  //     tempCtx.translate(img.width / 2, img.height / 2);
-  //     tempCtx.rotate((rotation * Math.PI) / 180);
-  //     tempCtx.scale(zoom, zoom);
-  //     tempCtx.drawImage(img, -img.width / 2, -img.height / 2);
-  //     tempCtx.restore();
-  //     ctx.imageSmoothingEnabled = true;
-  //     ctx.imageSmoothingQuality = "high";
-
-  //     // Draw cropped area to main canvas
-  //     ctx.drawImage(
-  //       tempCanvas,
-  //       cropArea.x / zoom,
-  //       cropArea.y / zoom,
-  //       cropArea.width / zoom,
-  //       cropArea.height / zoom,
-  //       0,
-  //       0,
-  //       OUTPUT_SIZE,
-  //       OUTPUT_SIZE,
-  //     );
-
-  //     // ctx.drawImage(
-  //     //   tempCanvas,
-  //     //   cropArea.x / zoom,
-  //     //   cropArea.y / zoom,
-  //     //   cropArea.width / zoom,
-  //     //   cropArea.height / zoom,
-  //     //   0,
-  //     //   0,
-  //     //   cropArea.width,
-  //     //   cropArea.height,
-  //     // );
-
-  //     // Convert to data URL and save
-  //     // const croppedImageData = canvas.toDataURL("image/jpeg", 0.9);
-  //     const croppedImageData = canvas.toDataURL("image/jpeg", 1);
-  //     onSave(croppedImageData);
-  //     onClose();
-
-  //     // toast({
-  //     //   title: 'Profile Picture Updated!',
-  //     //   description: 'Your new profile picture has been saved successfully',
-  //     // });
-  //   };
-  //   img.src = imageSrc;
-  // };
-
-  const handleSave = () => {
-    if (!imageSrc || !canvasRef.current || !imageRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const img = imageRef.current;
-
-    const OUTPUT_SIZE = 400;
-    canvas.width = OUTPUT_SIZE;
-    canvas.height = OUTPUT_SIZE;
-
-    ctx.clearRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-
-    // Calculate scale ratio between displayed image (400px) and real image
-    const displaySize = 400;
-    const naturalWidth = img.naturalWidth;
-    const naturalHeight = img.naturalHeight;
-
-    const scaleX = naturalWidth / displaySize;
-    const scaleY = naturalHeight / displaySize;
-
-    const sourceX = cropArea.x * scaleX;
-    const sourceY = cropArea.y * scaleY;
-    const sourceWidth = cropArea.width * scaleX;
-    const sourceHeight = cropArea.height * scaleY;
-
-    ctx.drawImage(
-      img,
-      sourceX,
-      sourceY,
-      sourceWidth,
-      sourceHeight,
-      0,
-      0,
-      OUTPUT_SIZE,
-      OUTPUT_SIZE,
-    );
-
-    const croppedImageData = canvas.toDataURL("image/jpeg", 1);
-    onSave(croppedImageData);
-    onClose();
+    setIsSaving(true);
+    try {
+      const croppedImageData = await getCroppedImage(
+        imageSrc,
+        croppedAreaPixels,
+        rotation,
+      );
+      const saved = await onSave(croppedImageData);
+      if (saved !== false) {
+        handleClose();
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to crop image",
+        description: "Please try a different photo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
   const handleReset = () => {
+    setCrop({ x: 0, y: 0 });
     setZoom(1);
     setRotation(0);
-    setCropArea({ x: 0, y: 0, width: 200, height: 200 });
   };
 
   const handleClose = () => {
-    setSelectedFile(null);
     setImageSrc("");
+    setCrop({ x: 0, y: 0 });
     setZoom(1);
     setRotation(0);
-    setCropArea({ x: 0, y: 0, width: 200, height: 200 });
+    setCroppedAreaPixels(null);
+    setIsDragging(false);
+    setIsSaving(false);
     onClose();
   };
 
@@ -429,6 +266,11 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
               <Button onClick={() => fileInputRef.current?.click()}>
                 Choose Photo
               </Button>
+              {currentAvatar && (
+                <div className="mt-4 text-xs text-muted-foreground">
+                  Current photo will be replaced after save.
+                </div>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -448,8 +290,8 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
                   <ZoomOut className="w-4 h-4" />
                   <Slider
                     value={[zoom]}
-                    onValueChange={handleZoomChange}
-                    min={0.5}
+                    onValueChange={(value) => setZoom(value[0])}
+                    min={1}
                     max={3}
                     step={0.1}
                     className="w-24"
@@ -464,10 +306,10 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
                   <RotateCw className="w-4 h-4" />
                   <Slider
                     value={[rotation]}
-                    onValueChange={handleRotationChange}
+                    onValueChange={(value) => setRotation(value[0])}
                     min={-180}
                     max={180}
-                    step={15}
+                    step={1}
                     className="w-24"
                   />
                   <span className="text-sm text-muted-foreground min-w-[3rem] text-center">
@@ -480,106 +322,27 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
                 </Button>
               </div>
 
-              {/* Image Preview with Crop Area */}
-              <div
-                className="relative mx-auto"
-                style={{ width: "400px", height: "400px" }}
-              >
-                <img
-                  ref={imageRef}
-                  src={imageSrc}
-                  alt="Profile preview"
-                  className="w-full h-full object-cover"
-                  style={{
-                    transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                    transformOrigin: "center",
-                  }}
+              {/* Professional crop stage */}
+              <div className="relative w-full max-w-[520px] h-[420px] mx-auto rounded-xl overflow-hidden bg-black/90 border border-border">
+                <Cropper
+                  image={imageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  rotation={rotation}
+                  aspect={1}
+                  cropShape="round"
+                  showGrid={false}
+                  objectFit="cover"
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                  onRotationChange={setRotation}
                 />
-
-                {/* Crop Overlay */}
-                <div
-                  className="absolute border-2 border-white shadow-lg cursor-move bg-white/10 backdrop-blur-sm"
-                  style={{
-                    left: cropArea.x,
-                    top: cropArea.y,
-                    width: cropArea.width,
-                    height: cropArea.height,
-                  }}
-                  onMouseDown={(e) => handleMouseDown(e)}
-                >
-                  {/* Resize Handles */}
-                  <div
-                    className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full cursor-nw-resize"
-                    style={{ left: "-6px", top: "-6px" }}
-                    onMouseDown={(e) => handleMouseDown(e, "nw")}
-                  />
-                  <div
-                    className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full cursor-ne-resize"
-                    style={{ right: "-6px", top: "-6px" }}
-                    onMouseDown={(e) => handleMouseDown(e, "ne")}
-                  />
-                  <div
-                    className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full cursor-sw-resize"
-                    style={{ left: "-6px", bottom: "-6px" }}
-                    onMouseDown={(e) => handleMouseDown(e, "sw")}
-                  />
-                  <div
-                    className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full cursor-se-resize"
-                    style={{ right: "-6px", bottom: "-6px" }}
-                    onMouseDown={(e) => handleMouseDown(e, "se")}
-                  />
-                </div>
-
-                {/* Crop Instructions */}
-                <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1 rounded text-sm">
-                  Drag to move • Drag corners to resize
-                </div>
-
-                {/* Crop Dimensions */}
-                <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded text-sm">
-                  {cropArea.width} × {cropArea.height}
-                </div>
               </div>
 
-              {/* Hidden Canvas for Processing */}
-              <canvas ref={canvasRef} className="hidden" />
-
-              {/* Preview */}
-              {/* <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">Preview</p>
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 mx-auto">
-                  <img
-                    src={imageSrc}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    style={{
-                      transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                      transformOrigin: "center",
-                    }}
-                  />
-                </div>
-              </div> */}
-              {/* Preview */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">Preview</p>
-
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 mx-auto relative">
-                  <div
-                    style={{
-                      width: "400px",
-                      height: "400px",
-                      transform: `translate(-${cropArea.x}px, -${cropArea.y}px) scale(${zoom}) rotate(${rotation}deg)`,
-                      transformOrigin: "top left",
-                    }}
-                  >
-                    <img
-                      src={imageSrc}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
+              <p className="text-center text-sm text-muted-foreground">
+                Drag to reposition • Use zoom and rotate for best framing
+              </p>
 
               {/* Action Buttons */}
               <div className="flex justify-center gap-4">
@@ -587,9 +350,9 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
                   <X className="w-4 h-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSave}>
+                <Button onClick={handleSave} disabled={isSaving}>
                   <Check className="w-4 h-4 mr-2" />
-                  Save Profile Picture
+                  {isSaving ? "Saving..." : "Save Profile Picture"}
                 </Button>
               </div>
             </div>

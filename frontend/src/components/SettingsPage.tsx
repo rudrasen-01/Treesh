@@ -87,6 +87,15 @@ export const SettingsPage = () => {
       allowMessagesFrom: "everyone" as const,
       showLastSeen: true,
       allowProfileViews: true,
+      isPrivate: false,
+      allowMessages: true,
+      showLocation: true,
+      showWebsite: true,
+      showPhone: false,
+      allowTagging: true,
+      allowMentions: true,
+      showActivityStatus: true,
+      allowStoryViews: true,
     }
   );
   const [notificationSettings, setNotificationSettings] = useState(
@@ -125,6 +134,24 @@ export const SettingsPage = () => {
       }));
     }
   }, [settings]);
+
+  // Allow other screens to request opening a specific settings tab.
+  useEffect(() => {
+    const onSettingsTab = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { tab?: string } | undefined;
+      const tab = String(detail?.tab || "");
+      if (["account", "privacy", "notifications", "app"].includes(tab)) {
+        setActiveTab(tab);
+      }
+    };
+
+    window.addEventListener("treesh:settings-tab", onSettingsTab as EventListener);
+    return () =>
+      window.removeEventListener(
+        "treesh:settings-tab",
+        onSettingsTab as EventListener,
+      );
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -421,33 +448,34 @@ export const SettingsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Account Privacy Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label>Private Account</Label>
-                <p className="text-sm text-muted-foreground">
-                  When your account is private, only people you approve can see your photos and videos.
-                </p>
-              </div>
-              <Switch
-                checked={privacySettings.profileVisibility === "private"}
-                onCheckedChange={(checked) =>
-                  setPrivacySettings({
-                    ...privacySettings,
-                    profileVisibility: checked ? "private" : "public",
-                  })
-                }
-              />
-            </div>
-
-            <Separator />
-
+            <h3 className="font-semibold text-lg">Account Privacy</h3>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Private Account</Label>
+                  <p className="text-sm text-muted-foreground">
+                    When private, only approved followers see your posts and stories
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.isPrivate || privacySettings.profileVisibility === "private"}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      isPrivate: checked,
+                      profileVisibility: checked ? "private" : "public",
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label>Show Online Status</Label>
                   <p className="text-sm text-muted-foreground">
-                    Let others see when you're online
+                    Let others see when you're active
                   </p>
                 </div>
                 <Switch
@@ -460,8 +488,34 @@ export const SettingsPage = () => {
                   }
                 />
               </div>
+            </div>
+          </div>
 
-              <div className="flex items-center justify-between">
+          <Separator />
+
+          {/* Communication Section */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Communication</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Allow Direct Messages</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Let others send you private messages
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.allowMessages}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      allowMessages: checked,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label>Allow Messages From</Label>
                   <p className="text-sm text-muted-foreground">
@@ -473,10 +527,7 @@ export const SettingsPage = () => {
                   onValueChange={(value) =>
                     setPrivacySettings({
                       ...privacySettings,
-                      allowMessagesFrom: value as
-                        | "everyone"
-                        | "friends"
-                        | "none",
+                      allowMessagesFrom: value as "everyone" | "friends" | "none",
                     })
                   }
                 >
@@ -491,7 +542,105 @@ export const SettingsPage = () => {
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Allow Tagging</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Let others tag you in posts and comments
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.allowTagging}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      allowTagging: checked,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Allow Mentions</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Let others mention you using @username
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.allowMentions}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      allowMentions: checked,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Profile Information Section */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Profile Information</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Show Location</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Display your location on your profile
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.showLocation}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      showLocation: checked,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Show Website</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Display your website link on your profile
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.showWebsite}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      showWebsite: checked,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Show Phone Number</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Display your phone number on your profile
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.showPhone}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      showPhone: checked,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label>Allow Profile Views</Label>
                   <p className="text-sm text-muted-foreground">
@@ -508,8 +657,52 @@ export const SettingsPage = () => {
                   }
                 />
               </div>
+            </div>
+          </div>
 
-              <div className="flex items-center justify-between">
+          <Separator />
+
+          {/* Activity & Stories Section */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Activity & Stories</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Show Activity Status</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Let others see when you're active on the platform
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.showActivityStatus}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      showActivityStatus: checked,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label>Allow Story Views</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Let others see who viewed your stories
+                  </p>
+                </div>
+                <Switch
+                  checked={privacySettings.allowStoryViews}
+                  onCheckedChange={(checked) =>
+                    setPrivacySettings({
+                      ...privacySettings,
+                      allowStoryViews: checked,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label>Show Last Seen</Label>
                   <p className="text-sm text-muted-foreground">

@@ -130,6 +130,8 @@ export const ProfilePage = () => {
     false,
   );
   const [showStoryUpload, setShowStoryUpload] = useState(false);
+  const [showPostUpload, setShowPostUpload] = useState(false);
+  const [showReelUpload, setShowReelUpload] = useState(false);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [userStories, setUserStories] = useState<any[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -151,6 +153,7 @@ export const ProfilePage = () => {
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [showEditProfileDialog, setShowEditProfileDialog] = useState(false);
   const isMobile = useIsMobile();
   const { hasSeen, markSeen } = useStorySeen();
   const { settings, updatePrivacySettings, refreshSettings } = useSettings();
@@ -191,6 +194,10 @@ export const ProfilePage = () => {
 
     return avatar; // fallback
   };
+
+  const profileAvatarSrc = getAvatarSrc(
+    user?.avatar || (user as any)?.profileImage || (user as any)?.profilePicture,
+  );
 
   // Navigate to another user's profile and close any open follower/following modal
   const openUserProfile = useCallback((userId: string) => {
@@ -279,8 +286,14 @@ export const ProfilePage = () => {
               post.authorId?.fullName ||
               authUser.fullName,
             username: post.authorId?.username || authUser.username,
-            avatar: post.authorId?.avatar || authUser.avatar || "",
-            verified: post.authorId?.isVerified || false,
+            avatar:
+              post.authorId?.avatar ||
+              post.authorId?.profileImage ||
+              post.authorId?.profilePicture ||
+              authUser.avatar ||
+              "",
+            verified:
+              post.authorId?.isVerified || post.authorId?.verified || false,
           },
           timestamp:
             post.createdAt || post.timestamp || new Date().toISOString(),
@@ -321,8 +334,8 @@ export const ProfilePage = () => {
           username: u.username,
           fullName: u.fullName || u.name,
           name: u.name || u.fullName,
-          avatar: u.avatar,
-          isVerified: u.isVerified || false,
+          avatar: u.avatar || u.profileImage || u.profilePicture || "",
+          isVerified: u.isVerified || u.verified || false,
           bio: u.bio || "",
           isFollowing: u.isFollowing ?? false,
           mutual: u.mutual ?? false,
@@ -352,8 +365,8 @@ export const ProfilePage = () => {
           username: u.username,
           fullName: u.fullName || u.name,
           name: u.name || u.fullName,
-          avatar: u.avatar,
-          isVerified: u.isVerified || false,
+          avatar: u.avatar || u.profileImage || u.profilePicture || "",
+          isVerified: u.isVerified || u.verified || false,
           bio: u.bio || "",
           isFollowing: true, // You always follow people in your following list
           mutual: u.mutual ?? false,
@@ -555,8 +568,8 @@ export const ProfilePage = () => {
             username: u.username,
             fullName: u.fullName || u.name,
             name: u.name || u.fullName,
-            avatar: u.avatar,
-            isVerified: u.isVerified || false,
+            avatar: u.avatar || u.profileImage || u.profilePicture || "",
+            isVerified: u.isVerified || u.verified || false,
             bio: u.bio || "",
             isFollowing: u.isFollowing ?? false,
             mutual: u.mutual ?? false,
@@ -573,8 +586,8 @@ export const ProfilePage = () => {
             username: u.username,
             fullName: u.fullName || u.name,
             name: u.name || u.fullName,
-            avatar: u.avatar,
-            isVerified: u.isVerified || false,
+            avatar: u.avatar || u.profileImage || u.profilePicture || "",
+            isVerified: u.isVerified || u.verified || false,
             bio: u.bio || "",
             isFollowing: true,
             mutual: u.mutual ?? false,
@@ -736,6 +749,7 @@ export const ProfilePage = () => {
         title: "Profile Updated!",
         description: "Your profile has been saved successfully",
       });
+      setShowEditProfileDialog(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -786,18 +800,31 @@ export const ProfilePage = () => {
       updateUser(resp.data);
 
       // 🔥 IMPORTANT: Update local state also
-      setUser((prev) => (prev ? { ...prev, avatar: resp.data.avatar } : prev));
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              avatar:
+                resp.data.avatar ||
+                (resp.data as any).profileImage ||
+                (resp.data as any).profilePicture ||
+                prev.avatar,
+            }
+          : prev,
+      );
 
       toast({
         title: "Profile Picture Updated!",
         description: "Saved successfully",
       });
+      return true;
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update profile picture",
         variant: "destructive",
       });
+      return false;
     }
   };
 
@@ -1045,57 +1072,45 @@ export const ProfilePage = () => {
     });
   };
 
+  const handleEditProfileRedirect = () => {
+    window.dispatchEvent(
+      new CustomEvent("treesh:navigate", { detail: { tab: "settings" } }),
+    );
+    // Add small delay to ensure SettingsPage mounts and listener is ready
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("treesh:settings-tab", { detail: { tab: "account" } }),
+      );
+    }, 100);
+  };
+
+  const handlePrivacyRedirect = () => {
+    window.dispatchEvent(
+      new CustomEvent("treesh:navigate", { detail: { tab: "settings" } }),
+    );
+    // Add small delay to ensure SettingsPage mounts and listener is ready
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("treesh:settings-tab", { detail: { tab: "privacy" } }),
+      );
+    }, 100);
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile Header */}
-      {isMobile && (
-        <header className="bg-card border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 hover:bg-muted"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-bold text-foreground">Profile</h1>
-              <p className="text-sm text-muted-foreground">@{user.username}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 hover:bg-muted"
-            >
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </div>
-        </header>
-      )}
-
-      {/* Desktop Header */}
-      {!isMobile && (
-        <header className="bg-card border-b border-border px-6 py-4">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-          </div>
-        </header>
-      )}
-
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen w-full bg-background overflow-x-clip">
+      <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 pb-6">
         {/* Profile Header Section - Instagram Style */}
-        <div className="px-4 sm:px-6 py-4 sm:py-6">
+        <div className="py-4 sm:py-6">
+          <div className="rounded-3xl border border-border/70 bg-card/70 backdrop-blur-sm px-4 sm:px-6 lg:px-8 py-5 sm:py-6 shadow-sm">
           {/* Profile Info Row */}
-          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-8">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 md:gap-8 lg:gap-10">
             {/* Profile Picture */}
-            <div className="relative mx-auto sm:mx-0">
+            <div className="relative shrink-0 mx-auto md:mx-0">
               {hasActiveStories ? (
                 // Profile picture with Instagram-style story ring
                 <button
                   onClick={handleProfilePictureClick}
-                  className="relative w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-full hover:scale-105 transition-transform"
+                  className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full hover:scale-[1.02] transition-transform"
                 >
                   {/* Segmented ring overlay */}
                   <div className="absolute inset-0 -m-[2px] flex items-center justify-center">
@@ -1126,23 +1141,42 @@ export const ProfilePage = () => {
                         {user.fullName.charAt(0)}
                       </AvatarFallback>
                     </Avatar> */}
-                  <div className="w-32 h-32 rounded-full overflow-hidden ring-2 ring-border">
-                    <img
-                      src={getAvatarSrc(user.avatar)}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center">
+                    {profileAvatarSrc ? (
+                      <img
+                        src={profileAvatarSrc}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-3xl font-semibold text-muted-foreground">
+                        {user.fullName?.charAt(0)?.toUpperCase() ||
+                          user.username?.charAt(0)?.toUpperCase() ||
+                          "U"}
+                      </span>
+                    )}
                   </div>
                   {/* </div> */}
                 </button>
               ) : (
                 // Regular profile picture
-                <div className="w-32 h-32 rounded-full overflow-hidden ring-2 ring-border">
-                  <img
-                    src={getAvatarSrc(user.avatar)}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
+                <div
+                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center"
+                  onClick={handleEditProfileRedirect}
+                >
+                  {profileAvatarSrc ? (
+                    <img
+                      src={profileAvatarSrc}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl font-semibold text-muted-foreground">
+                      {user.fullName?.charAt(0)?.toUpperCase() ||
+                        user.username?.charAt(0)?.toUpperCase() ||
+                        "U"}
+                    </span>
+                  )}
                 </div>
 
                 // <Avatar
@@ -1160,18 +1194,18 @@ export const ProfilePage = () => {
               {!hasActiveStories && (
                 <Button
                   size="sm"
-                  className="absolute -bottom-1 -right-1 rounded-full w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 p-0 bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+                  className="absolute -bottom-1 -right-1 rounded-full w-8 h-8 p-0 bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
                   onClick={() => setShowProfilePictureUpload(true)}
                 >
-                  <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <Edit className="w-4 h-4" />
                 </Button>
               )}
             </div>
 
             {/* Profile Details */}
-            <div className="flex-1 text-center sm:text-left w-full">
-              <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+            <div className="flex-1 w-full min-w-0 text-center md:text-left">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-1">
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                   {user.fullName}
                 </h2>
                 {user.verified && (
@@ -1180,34 +1214,41 @@ export const ProfilePage = () => {
                   </div>
                 )}
                 {user.isPrivate && (
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs h-6">
                     Private
+                  </Badge>
+                )}
+                {user.isStreamer && (
+                  <Badge className="text-xs h-6 bg-emerald-600 hover:bg-emerald-600 text-white">
+                    Streamer
                   </Badge>
                 )}
               </div>
 
-              <p className="text-muted-foreground mb-2 text-sm">@{user.username}</p>
+              <p className="text-muted-foreground mb-3 text-base">@{user.username}</p>
 
-              <p className="text-foreground/90 mb-3 text-sm sm:text-base max-w-md mx-auto sm:mx-0">
-                {user.bio}
-              </p>
+              {user.bio && (
+                <p className="text-foreground/90 mb-4 text-sm sm:text-base max-w-xl mx-auto md:mx-0 leading-relaxed">
+                  {user.bio}
+                </p>
+              )}
 
               {/* Contact Info - Compact */}
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-4 text-xs text-muted-foreground">
+              <div className="flex flex-wrap justify-center md:justify-start gap-2.5 mb-5 text-xs text-muted-foreground">
                 {user.location && (
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="w-3 h-3" />
+                  <div className="flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1.5 bg-background/60">
+                    <MapPin className="w-3.5 h-3.5" />
                     <span>{user.location}</span>
                   </div>
                 )}
                 {user.website && (
-                  <div className="flex items-center space-x-1">
-                    <Globe className="w-3 h-3" />
+                  <div className="flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1.5 bg-background/60">
+                    <Globe className="w-3.5 h-3.5" />
                     <a
                       href={user.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-blue-500 transition-colors underline"
+                      className="hover:text-blue-500 transition-colors underline decoration-dotted"
                     >
                       Website
                     </a>
@@ -1216,30 +1257,24 @@ export const ProfilePage = () => {
               </div>
 
               {/* Action Buttons - Instagram Style */}
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2 w-full max-w-3xl mx-auto md:mx-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
-                  onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent("treesh:navigate", {
-                        detail: { tab: "settings" },
-                      }),
-                    )
-                  }
+                  className="h-10 text-sm"
+                  onClick={handleEditProfileRedirect}
                 >
-                  <Settings className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <Settings className="w-4 h-4 mr-2" />
                   Edit Profile
                 </Button>
 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
-                  onClick={() => setShowPrivacySettings(true)}
+                  className="h-10 text-sm"
+                  onClick={handlePrivacyRedirect}
                 >
-                  <Shield className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <Shield className="w-4 h-4 mr-2" />
                   Privacy
                 </Button>
 
@@ -1256,43 +1291,41 @@ export const ProfilePage = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  // className="h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4 opacity-50 cursor-not-allowed"
-                  // disabled
-                  className="h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
+                  className="h-10 text-sm"
                   onClick={handleShareProfile}
                 >
-                  <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <Share2 className="w-4 h-4 mr-2" />
                   Share
                 </Button>
               </div>
 
               {/* Premium Action Buttons */}
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full max-w-3xl mx-auto md:mx-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 hover:from-purple-600 hover:to-pink-600"
+                  className="h-10 text-sm bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white border-0 hover:from-fuchsia-600 hover:to-pink-600"
                   onClick={() => setShowStoryUpload(true)}
                 >
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <Plus className="w-4 h-4 mr-2" />
                   Create Story
                 </Button>
 
                 <Button
-                  className="h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4 bg-red-500 hover:bg-red-600 text-white"
+                  className="h-10 text-sm bg-red-500 hover:bg-red-600 text-white"
                   onClick={handleSubscriptionClick}
                 >
-                  <Crown className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <Crown className="w-4 h-4 mr-2" />
                   Subscribe
                 </Button>
 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 sm:h-9 text-xs sm:text-sm px-3 sm:px-4"
+                  className="h-10 text-sm"
                   onClick={handleGiftSubscriptionClick}
                 >
-                  <Gift className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <Gift className="w-4 h-4 mr-2" />
                   Gift Sub
                 </Button>
               </div>
@@ -1300,56 +1333,47 @@ export const ProfilePage = () => {
           </div>
 
           {/* Profile Stats Row - Instagram Style */}
-          <div className="flex justify-center sm:justify-start items-center space-x-8 sm:space-x-12 mt-6 sm:mt-8 pt-4 border-t border-border">
-            <div className="text-center cursor-pointer">
-              <div className="text-lg sm:text-xl font-bold text-foreground">
+          <div className="mt-6 sm:mt-7 pt-5 border-t border-border/70 grid grid-cols-3 gap-2 max-w-md md:max-w-lg mx-auto md:mx-0">
+            <div className="text-center cursor-pointer rounded-xl hover:bg-muted/30 transition-colors py-1.5">
+              <div className="text-2xl font-semibold text-foreground leading-none">
                 {user.posts}
               </div>
-              <div className="text-xs sm:text-sm text-muted-foreground">Posts</div>
+              <div className="text-xs sm:text-sm text-muted-foreground mt-1">Posts</div>
             </div>
             <div
-              className="text-center cursor-pointer"
+              className="text-center cursor-pointer rounded-xl hover:bg-muted/30 transition-colors py-1.5"
               onClick={handleShowFollowers}
             >
-              <div className="text-lg sm:text-xl font-bold text-foreground">
+              <div className="text-2xl font-semibold text-foreground leading-none">
                 {user.followers}
               </div>
-              <div className="text-xs sm:text-sm text-muted-foreground">Followers</div>
+              <div className="text-xs sm:text-sm text-muted-foreground mt-1">Followers</div>
             </div>
             <div
-              className="text-center cursor-pointer"
+              className="text-center cursor-pointer rounded-xl hover:bg-muted/30 transition-colors py-1.5"
               onClick={handleShowFollowing}
             >
-              <div className="text-lg sm:text-xl font-bold text-foreground">
+              <div className="text-2xl font-semibold text-foreground leading-none">
                 {user.following}
               </div>
-              <div className="text-xs sm:text-sm text-muted-foreground">Following</div>
+              <div className="text-xs sm:text-sm text-muted-foreground mt-1">Following</div>
             </div>
-            {user.isStreamer && (
-              <div className="text-center">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1">
-                  <CheckCircle className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" />
-                </div>
-                <div className="text-xs text-green-600 font-medium">
-                  Streamer
-                </div>
-              </div>
-            )}
           </div>
-        </div>
+          </div>
+          </div>
 
         {/* Content Tabs Section - Instagram Style */}
-        <div className="bg-card border-t border-border">
-          <div className="px-4 sm:px-6">
+        <div className="mt-4 rounded-3xl border border-border/70 bg-card/70 backdrop-blur-sm shadow-sm overflow-x-clip">
+          <div className="px-2 sm:px-4 lg:px-6 pt-3 sm:pt-4 pb-1">
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-3 h-12 sm:h-14 bg-transparent border-b border-border rounded-none">
+              <TabsList className="grid w-full grid-cols-3 h-11 sm:h-12 p-1 bg-background/50 border border-border/60 rounded-xl overflow-x-clip">
                 <TabsTrigger
                   value="posts"
-                  className="flex items-center space-x-2 text-sm sm:text-base data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none"
+                  className="flex items-center justify-center gap-2 text-sm sm:text-base rounded-lg px-2 sm:px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-foreground"
                 >
                   <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden sm:inline">Posts</span>
@@ -1359,7 +1383,7 @@ export const ProfilePage = () => {
                 </TabsTrigger>
                 <TabsTrigger
                   value="reels"
-                  className="flex items-center space-x-2 text-sm sm:text-base data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none"
+                  className="flex items-center justify-center gap-2 text-sm sm:text-base rounded-lg px-2 sm:px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-foreground"
                 >
                   <Video className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden sm:inline">Reels</span>
@@ -1369,7 +1393,7 @@ export const ProfilePage = () => {
                 </TabsTrigger>
                 <TabsTrigger
                   value="saved"
-                  className="flex items-center space-x-2 text-sm sm:text-base data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none"
+                  className="flex items-center justify-center gap-2 text-sm sm:text-base rounded-lg px-2 sm:px-3 data-[state=active]:bg-primary/10 data-[state=active]:text-foreground"
                 >
                   <Bookmark className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden sm:inline">Saved</span>
@@ -1377,16 +1401,16 @@ export const ProfilePage = () => {
               </TabsList>
 
               {/* Tab Content */}
-              <div className="px-2 sm:px-6 py-4">
+              <div className="px-1 sm:px-2 py-4">
                 {/* Tab Header with Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2 px-2 sm:px-3">
                   <div>
-                    <h3 className="text-base sm:text-lg font-semibold text-foreground">
+                    <h3 className="text-lg sm:text-xl font-semibold text-foreground tracking-tight">
                       {activeTab === "posts" && "Your Posts"}
                       {activeTab === "reels" && "Your Reels"}
                       {activeTab === "saved" && "Saved Content"}
                     </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {activeTab === "posts" &&
                         `Share your moments with ${user.followers} followers`}
                       {activeTab === "reels" && "Create engaging short videos"}
@@ -1397,15 +1421,15 @@ export const ProfilePage = () => {
 
                 {/* Posts Grid - Instagram Style */}
                 <TabsContent value="posts" className="mt-0">
-                  <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2.5 px-2 sm:px-3 pb-3">
                     {postsLoading ? (
                       // Loading state for posts
                       Array.from({ length: 6 }).map((_, index) => (
                         <div
                           key={index}
-                          className="aspect-square bg-gray-200 rounded-lg overflow-hidden animate-pulse"
+                          className="aspect-square bg-muted rounded-xl overflow-hidden animate-pulse"
                         >
-                          <div className="w-full h-full bg-gray-300"></div>
+                          <div className="w-full h-full bg-muted-foreground/10"></div>
                         </div>
                       ))
                     ) : posts.filter((p) => p.type === "post").length > 0 ? (
@@ -1414,7 +1438,7 @@ export const ProfilePage = () => {
                         .map((post) => (
                           <div
                             key={post.id}
-                            className="aspect-square bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative group"
+                            className="aspect-square bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity relative group"
                             onClick={() => handlePostClick(post)}
                           >
                             {post.video ? (
@@ -1465,11 +1489,16 @@ export const ProfilePage = () => {
                           </div>
                         ))
                     ) : (
-                      <div className="col-span-3 py-12 text-center">
+                      <div className="col-span-2 sm:col-span-3 lg:col-span-4 py-12 text-center rounded-2xl border border-dashed border-border/70 bg-background/40">
                         <div className="flex flex-col items-center space-y-3">
-                          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setShowPostUpload(true)}
+                            className="w-16 h-16 bg-muted rounded-full flex items-center justify-center hover:bg-muted/80 transition-colors"
+                            aria-label="Upload your first post"
+                          >
                             <Camera className="w-8 h-8 text-gray-400" />
-                          </div>
+                          </button>
                           <h3 className="text-lg font-semibold text-foreground">
                             No posts yet
                           </h3>
@@ -1477,6 +1506,13 @@ export const ProfilePage = () => {
                             Share your first post to get started on your
                             journey!
                           </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowPostUpload(true)}
+                          >
+                            Upload Post
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -1484,15 +1520,15 @@ export const ProfilePage = () => {
                 </TabsContent>
 
                 <TabsContent value="reels" className="mt-0">
-                  <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2.5 px-2 sm:px-3 pb-3">
                     {postsLoading ? (
                       // Loading state for reels
                       Array.from({ length: 6 }).map((_, index) => (
                         <div
                           key={index}
-                          className="aspect-square bg-gray-200 rounded-lg overflow-hidden animate-pulse"
+                          className="aspect-square bg-muted rounded-xl overflow-hidden animate-pulse"
                         >
-                          <div className="w-full h-full bg-gray-300"></div>
+                          <div className="w-full h-full bg-muted-foreground/10"></div>
                         </div>
                       ))
                     ) : posts.filter((p) => p.type === "reel").length > 0 ? (
@@ -1501,7 +1537,7 @@ export const ProfilePage = () => {
                         .map((post) => (
                           <div
                             key={post.id}
-                            className="aspect-square bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity relative group"
+                            className="aspect-square bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity relative group"
                             onClick={() => handlePostClick(post)}
                           >
                             {post.image ? (
@@ -1526,7 +1562,7 @@ export const ProfilePage = () => {
                                 playsInline
                               />
                             ) : (
-                              <div className="w-full h-full bg-gray-300" />
+                              <div className="w-full h-full bg-muted" />
                             )}
                             <div className="absolute top-2 left-2">
                               <Play className="w-4 h-4 text-white drop-shadow-lg" />
@@ -1563,11 +1599,16 @@ export const ProfilePage = () => {
                           </div>
                         ))
                     ) : (
-                      <div className="col-span-3 py-12 text-center">
+                      <div className="col-span-2 sm:col-span-3 lg:col-span-4 py-12 text-center rounded-2xl border border-dashed border-border/70 bg-background/40">
                         <div className="flex flex-col items-center space-y-3">
-                          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setShowReelUpload(true)}
+                            className="w-16 h-16 bg-muted rounded-full flex items-center justify-center hover:bg-muted/80 transition-colors"
+                            aria-label="Upload your first reel"
+                          >
                             <Video className="w-8 h-8 text-gray-400" />
-                          </div>
+                          </button>
                           <h3 className="text-lg font-semibold text-foreground">
                             No reels yet
                           </h3>
@@ -1575,6 +1616,13 @@ export const ProfilePage = () => {
                             Create your first reel to share short videos with
                             your audience!
                           </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowReelUpload(true)}
+                          >
+                            Upload Reel
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -1649,7 +1697,22 @@ export const ProfilePage = () => {
         type="story"
       />
 
-      {/* Privacy Settings Modal */}
+      {/* Post Upload Modal */}
+      <UploadModal
+        isOpen={showPostUpload}
+        onClose={() => setShowPostUpload(false)}
+        type="post"
+      />
+
+      {/* Reel Upload Modal */}
+      <UploadModal
+        isOpen={showReelUpload}
+        onClose={() => setShowReelUpload(false)}
+        type="reel"
+      />
+
+      {/* Privacy Settings Modal - Disabled, redirects to Settings instead */}
+      {/* Commented out - privacy settings now redirect to settings page
       <PrivacySettings
         isOpen={showPrivacySettings}
         onClose={() => setShowPrivacySettings(false)}
@@ -1668,6 +1731,7 @@ export const ProfilePage = () => {
           allowStoryViews: true,
         }}
       />
+      */}
 
       {/* Post Detail Modal */}
       {selectedPost && (
@@ -1819,6 +1883,109 @@ export const ProfilePage = () => {
               disabled={deletingPostId !== null}
             >
               {deletingPostId ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog
+        open={showEditProfileDialog}
+        onOpenChange={setShowEditProfileDialog}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>
+              Update your profile details and save changes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Full Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => {
+                  setEditName(e.target.value);
+                  setErrors((prev) => ({ ...prev, name: "" }));
+                }}
+                placeholder="Enter your full name"
+              />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-bio">Bio</Label>
+              <Textarea
+                id="edit-bio"
+                value={editBio}
+                onChange={(e) => {
+                  setEditBio(e.target.value);
+                  setErrors((prev) => ({ ...prev, bio: "" }));
+                }}
+                placeholder="Write something about yourself"
+                maxLength={200}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{errors.bio ? errors.bio : " "}</span>
+                <span>{editBio.length}/200</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-location">Location</Label>
+              <Input
+                id="edit-location"
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
+                placeholder="City, Country"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-website">Website</Label>
+              <Input
+                id="edit-website"
+                value={editWebsite}
+                onChange={(e) => {
+                  setEditWebsite(e.target.value);
+                  setErrors((prev) => ({ ...prev, website: "" }));
+                }}
+                placeholder="https://example.com"
+              />
+              {errors.website && (
+                <p className="text-sm text-destructive">{errors.website}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border px-3 py-2">
+              <div>
+                <p className="text-sm font-medium">Private Account</p>
+                <p className="text-xs text-muted-foreground">
+                  Only approved followers can see your content
+                </p>
+              </div>
+              <Switch
+                checked={isPrivate}
+                onCheckedChange={handlePrivacyChange}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEditProfileDialog(false)}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

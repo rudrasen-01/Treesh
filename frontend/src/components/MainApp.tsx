@@ -131,6 +131,12 @@ export const MainApp = () => {
 
   const desktopSidebarWidth = sidebarHovered ? 256 : 64;
 
+  const getHeaderTitle = () => {
+    if (activeTab === "profile") return "Profile";
+    if (activeTab === "user-profile") return "User Profile";
+    return "Treesh";
+  };
+
   // Function to refresh notification count
   const refreshNotificationCount = async () => {
     if (user?.id) {
@@ -693,6 +699,9 @@ export const MainApp = () => {
                   <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               )}
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">
+                {getHeaderTitle()}
+              </h1>
             </div>
 
             {/* RIGHT SIDE */}
@@ -792,11 +801,21 @@ export const MainApp = () => {
               <img
                 src="/logo.svg"
                 alt="Treesh"
-                className="w-7 h-7 object-contain flex-shrink-0"
+                className={`w-7 h-7 object-contain flex-shrink-0 ${
+                  activeTab === "profile" || activeTab === "user-profile"
+                    ? "hidden"
+                    : ""
+                }`}
               />
 
-              <h1 className="text-lg font-bold text-primary truncate">
-                Treesh
+              <h1
+                className={`text-lg font-bold truncate ${
+                  activeTab === "profile" || activeTab === "user-profile"
+                    ? "text-foreground"
+                    : "text-primary"
+                }`}
+              >
+                {getHeaderTitle()}
               </h1>
             </div>
 
