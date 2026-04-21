@@ -69,25 +69,41 @@ const server = createServer(app);
 // Trust proxy - Required when behind Nginx
 app.set("trust proxy", 1);
 
+const envOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.VITE_FRONTEND_URL,
+  process.env.VITE_ADMIN_URL,
+  process.env.CORS_ALLOWED_ORIGINS,
+]
+  .filter(Boolean)
+  .flatMap((value) => String(value).split(","))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const sharedAllowedOrigins = [
+  "https://treessocialmedia-ci5o.vercel.app",
+  "https://treessocialmedia.vercel.app",
+  "https://trees-admin-lh9z.vercel.app",
+  "https://trees-admin.vercel.app",
+  "https://inventurcubes.com",
+  "https://www.inventurcubes.com",
+  "http://treesh-frontend.s3-website-us-east-1.amazonaws.com",
+  "https://treesh-frontend.s3-website-us-east-1.amazonaws.com",
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "http://127.0.0.1:8080",
+  "http://127.0.0.1:5173",
+  "https://e1c4e1bea8e0.ngrok-free.app",
+  /^https:\/\/[a-z0-9-]+\.ngrok\.io$/,
+  /^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/,
+  /^https:\/\/[a-z0-9-]+\.ngrok\.app$/,
+  ...envOrigins,
+].filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://treessocialmedia-ci5o.vercel.app",
-      "https://treessocialmedia.vercel.app",
-      "https://trees-admin-lh9z.vercel.app",
-      "https://trees-admin.vercel.app",
-      "https://inventurcubes.com",
-      "https://www.inventurcubes.com",
-      "http://localhost:5173",
-      "http://localhost:8080",
-      "http://localhost:8081",
-      "http://localhost:5173",
-      "https://e1c4e1bea8e0.ngrok-free.app",
-      /^https:\/\/[a-z0-9-]+\.ngrok\.io$/,
-      /^https:\/\/[a-z0-9-]+\.ngrok-free\.app$/,
-      /^https:\/\/[a-z0-9-]+\.ngrok\.app$/,
-      process.env.FRONTEND_URL,
-    ].filter(Boolean),
+    origin: sharedAllowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
   },
@@ -110,21 +126,7 @@ const limiter = rateLimit({
 
 // Middleware (CORS MUST COME FIRST)
 const corsOptions = {
-  origin: [
-    // "https://transfer-trees-1.onrender.com",
-    // "https://transfer-trees-1.onrender.com/api",
-    "https://treesh-admin.vercel.app",
-    "https://inventurcubes.com",
-    "https://www.inventurcubes.com",
-    "http://localhost:5173",
-    "http://localhost:8080",
-    "http://localhost:8081",
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:5173",
-    "https://e1c4e1bea8e0.ngrok-free.app",
-    process.env.VITE_ADMIN_URL,
-    process.env.FRONTEND_URL,
-  ].filter(Boolean),
+  origin: sharedAllowedOrigins,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
