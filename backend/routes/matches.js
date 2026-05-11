@@ -25,7 +25,8 @@ router.get('/potential', auth, async (req, res) => {
     // Build filter based on preferences
     const filter = {
       _id: { $nin: [...swipedUserIds, req.user.id, ...user.blockedUsers] },
-      isActive: true
+      isActive: true,
+      role: { $ne: "admin" } // Exclude admin users from potential matches
     };
     
     if (user.preferences.gender && user.preferences.gender !== 'all') {
@@ -49,6 +50,18 @@ router.post('/swipe', auth, async (req, res) => {
     
     if (targetUserId === req.user.id) {
       return res.status(400).json({ error: 'Cannot swipe on yourself' });
+    }
+
+    // Prevent swiping on admin accounts
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (targetUser.role === 'admin') {
+      return res.status(403).json({ 
+        error: 'Cannot interact with this user',
+        code: 'CANNOT_MATCH_ADMIN'
+      });
     }
     
     // Check if match already exists

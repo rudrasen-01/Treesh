@@ -483,6 +483,7 @@ userInteractionSchema.statics.getPotentialMatches = async function (
     _id: { $nin: Array.from(excludeIds) },
     status: "active",
     isActive: true,
+    role: { $ne: "admin" }, // Exclude admin users from arcade suggestions
   })
     .select("username name avatar bio location isVerified")
     .limit(parseInt(limit));

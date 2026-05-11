@@ -884,6 +884,7 @@ export const EnhancedAuthModal = ({
                   <Input
                     id="login-identifier"
                     type="text"
+                    autoComplete="username"
                     placeholder="Enter your email or username"
                     value={loginData.identifier}
                     onChange={(e) => handleLoginInputChange("identifier", e.target.value)}
@@ -910,6 +911,7 @@ export const EnhancedAuthModal = ({
                   <Input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="Enter your password"
                     value={loginData.password}
                     onChange={(e) => handleLoginInputChange("password", e.target.value)}
@@ -1158,6 +1160,7 @@ export const EnhancedAuthModal = ({
                   <Input
                     id="register-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="Create a password"
                     value={registerData.password}
                     onChange={(e) => {
@@ -1240,6 +1243,7 @@ export const EnhancedAuthModal = ({
                   <Input
                     id="register-confirm-password"
                     type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="Confirm your password"
                     value={registerData.confirmPassword}
                     onChange={(e) => handleRegisterInputChange("confirmPassword", e.target.value)}

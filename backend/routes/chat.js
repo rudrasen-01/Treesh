@@ -28,10 +28,15 @@ const canInitiateOrMessage = async (senderId, recipientId) => {
   const [sender, recipient] = await Promise.all([
     User.findById(senderId).select("following blockedUsers"),
     User.findById(recipientId).select(
-      "privacy.followers followers blockedUsers privacy.allowMessagesFrom"
+      "privacy.followers followers blockedUsers privacy.allowMessagesFrom role"
     ),
   ]);
   if (!sender || !recipient) return { allowed: false, code: "NOT_FOUND" };
+
+  // Prevent messaging admin accounts
+  if (recipient.role === "admin") {
+    return { allowed: false, code: "CANNOT_MESSAGE_ADMIN" };
+  }
 
   // If blocked in either direction
   if (
@@ -66,32 +71,69 @@ const canInitiateOrMessage = async (senderId, recipientId) => {
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const { limit = 20, page = 1, chatType } = req.query;
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * parseInt(limit);
 
-    console.log('📩 GET /api/chat -', { chatType, userId: req.user.id });
+    console.log('📩 GET /api/chat -', { chatType, userId: req.user.id, page, limit });
 
-    // Get all chats for the user
-    const allChats = await Chat.getUserChats(req.user.id, parseInt(limit) + skip);
-    
-    console.log(`   Found ${allChats.length} total chats`);
-    
-    // Filter by chatType if specified
-    let chats = allChats;
-    if (chatType && ["arcade", "trees"].includes(chatType)) {
-      chats = allChats.filter(chat => chat.chatType === chatType);
-      console.log(`   Filtered to ${chats.length} ${chatType} chats`);
+    // Verify user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - No user in session",
+      });
     }
+
+    // Build the base filter to ensure only current user's chats are fetched
+    const baseFilter = {
+      $and: [
+        { participants: req.user.id }, // User MUST be a participant
+        { isActive: true }
+      ]
+    };
+
+    // Get blocked users for exclusion
+    const User = (await import("../models/User.js")).default;
+    const currentUser = await User.findById(req.user.id).select('blockedUsers');
+    const usersWhoBlockedMe = await User.find({ blockedUsers: req.user.id }).distinct('_id');
     
-    const paginatedChats = chats.slice(skip, skip + parseInt(limit));
+    const allExclusions = [
+      ...(currentUser?.blockedUsers || []),
+      ...usersWhoBlockedMe
+    ];
+
+    if (allExclusions.length > 0) {
+      baseFilter.$and.push({ participants: { $nin: allExclusions } });
+    }
+
+    // Apply chatType filter if specified
+    if (chatType && ["arcade", "trees"].includes(chatType)) {
+      baseFilter.chatType = chatType;
+    }
+
+    // Fetch chats with pagination from database (more efficient)
+    const allChats = await Chat.find(baseFilter)
+      .populate(
+        'participants',
+        'username name fullName avatar isOnline lastSeen privacy.showOnlineStatus privacy.showLastSeen'
+      )
+      .populate('lastMessage', 'content createdAt senderId')
+      .sort({ lastActivity: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const totalCount = await Chat.countDocuments(baseFilter);
+
+    console.log(`   Found ${allChats.length} chats for user (Total: ${totalCount})`);
 
     res.json({
       success: true,
-      data: paginatedChats,
+      data: allChats,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: chats.length,
-        hasMore: chats.length > skip + parseInt(limit),
+        total: totalCount,
+        hasMore: skip + parseInt(limit) < totalCount,
       },
     });
   } catch (error) {
@@ -252,6 +294,8 @@ router.post(
             ? "You are blocked by this user"
             : perm.code === "I_BLOCKED"
             ? "You have blocked this user"
+            : perm.code === "CANNOT_MESSAGE_ADMIN"
+            ? "Cannot message this user"
             : "Messaging not allowed";
         return res
           .status(403)

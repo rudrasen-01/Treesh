@@ -312,17 +312,6 @@ const [showMatchesBelow, setShowMatchesBelow] = useState(false);
         const res = await arcadeAPI.getMatches();
         if (res.success && Array.isArray(res.data)) {
           setMatches(res.data);
-          // Dev helper: if empty, try to create one match automatically and refetch
-          if (res.data.length === 0) {
-            try {
-              const created = await arcadeAPI.devCreateMatch();
-              if (created.success) {
-                const res2 = await arcadeAPI.getMatches();
-                if (res2.success && Array.isArray(res2.data))
-                  setMatches(res2.data);
-              }
-            } catch {}
-          }
         }
       } catch {}
     };
@@ -337,16 +326,6 @@ const [showMatchesBelow, setShowMatchesBelow] = useState(false);
         const res = await arcadeAPI.getMatches();
         if (res.success && Array.isArray(res.data)) {
           setMatches(res.data);
-          if (res.data.length === 0) {
-            try {
-              const created = await arcadeAPI.devCreateMatch();
-              if (created.success) {
-                const res2 = await arcadeAPI.getMatches();
-                if (res2.success && Array.isArray(res2.data))
-                  setMatches(res2.data);
-              }
-            } catch {}
-          }
         }
       } catch {}
     };

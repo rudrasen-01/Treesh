@@ -19,6 +19,7 @@ import {
   Music,
   Eye,
   Film,
+  ArrowLeft,
 } from "lucide-react";
 import { postsAPI, usersAPI } from "@/services/api";
 import { Bookmark } from "lucide-react";
@@ -645,6 +646,22 @@ export const ReelsViewer = ({ sidebarWidth = 0, onCreateReel, onUserClick }: Ree
           </div>
         ) : (
           <div className="reel-shell">
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => {
+                // Dispatch event to go back to home
+                window.dispatchEvent(
+                  new CustomEvent("treesh:navigate", {
+                    detail: { tab: "home" }
+                  })
+                );
+              }}
+              className="absolute top-4 left-4 z-50 bg-black/50 hover:bg-black/70 p-2 rounded-full transition-all backdrop-blur-sm border border-white/20 hover:border-white/40 text-white hover:scale-110 md:hidden"
+              title="Back to Home"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+
             {/* Top Navigation Button */}
             {currentReel > 0 && (
               <button

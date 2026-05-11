@@ -83,48 +83,50 @@ const MainContent = ({ activeTab }: MainContentProps) => {
   };
 
   return (
-    <div className="flex-1 p-6 bg-background min-h-screen">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 font-treesh">{getTabTitle(activeTab)}</h2>
-            <p className="text-gray-600 mt-1 font-inter">Stay connected with the latest updates</p>
+    <div className="flex-1 bg-background min-h-screen w-full overflow-x-hidden">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="max-w-2xl mx-auto w-full">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+            <div className="w-full min-w-0">
+              <h2 className="text-responsive-2xl font-bold text-gray-900 font-treesh">{getTabTitle(activeTab)}</h2>
+              <p className="text-text-responsive-base text-gray-600 mt-1 sm:mt-2 font-inter">Stay connected with the latest updates</p>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1 sm:gap-2 font-inter text-xs sm:text-sm flex-1 sm:flex-none"
+              >
+                <Filter className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Filter</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-1 sm:gap-2 font-inter text-xs sm:text-sm flex-1 sm:flex-none"
+              >
+                <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center space-x-2 font-inter"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Filter</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center space-x-2 font-inter"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
+
+          {/* Posts */}
+          <div className="space-y-4 sm:space-y-6">
+            {samplePosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+
+          {/* Load More */}
+          <div className="mt-8 sm:mt-12 text-center">
+            <Button variant="outline" className="px-6 sm:px-8 font-inter text-sm sm:text-base">
+              Load More Posts
             </Button>
           </div>
-        </div>
-
-        {/* Posts */}
-        <div className="space-y-6">
-          {samplePosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
-
-        {/* Load More */}
-        <div className="mt-8 text-center">
-          <Button variant="outline" className="px-8 font-inter">
-            Load More Posts
-          </Button>
         </div>
       </div>
     </div>

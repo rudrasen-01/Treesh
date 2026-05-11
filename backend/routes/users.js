@@ -47,6 +47,7 @@ router.get("/search", authenticate, async (req, res) => {
 
     const filter = {
       _id: { $nin: allExclusions },
+      role: { $ne: "admin" }, // Exclude admin users from search
       $or: [
         { username: { $regex: searchQuery, $options: "i" } },
         { name: { $regex: searchQuery, $options: "i" } },
@@ -83,7 +84,8 @@ router.get("/suggestions", authenticate, async (req, res) => {
     const excludeIds = [currentUser._id.toString(), ...followingIds, ...myBlocked, ...blockedMe.map(id => id.toString())];
 
     // Find users not in the exclude list, sort by follower count or created date
-    const suggestedUsers = await User.find({ _id: { $nin: excludeIds } })
+    // Exclude admin users from suggestions
+    const suggestedUsers = await User.find({ _id: { $nin: excludeIds }, role: { $ne: "admin" } })
       .select("-password -email -phone")
       .sort({ followers: -1, createdAt: -1 })
       .limit(limit);
@@ -193,6 +195,14 @@ router.post("/:id/follow", authenticate, async (req, res) => {
 
     if (!targetUser) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    // Prevent following admin accounts
+    if (targetUser.role === "admin") {
+      return res.status(403).json({ 
+        error: "Cannot follow this user",
+        code: "CANNOT_FOLLOW_ADMIN"
+      });
     }
 
     // Handle demo user case
@@ -792,6 +802,11 @@ router.get(
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Prevent viewing admin account followers
+      if (user.role === "admin") {
+        return res.status(404).json({ error: "User not found" });
+      }
+
       // Privacy: if target is private and requester is not a follower or self, deny
       const targetUserFull = await User.findById(req.params.id).select(
         "privacy.profileVisibility followers"
@@ -827,6 +842,11 @@ router.get(
         .select("following");
 
       if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Prevent viewing admin account following list
+      if (user.role === "admin") {
         return res.status(404).json({ error: "User not found" });
       }
 
@@ -953,6 +973,14 @@ router.get("/:id([0-9a-fA-F]{24})", authenticate, async (req, res) => {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    // Prevent viewing admin profiles from user panel
+    if (user.role === "admin") {
+      return res.status(404).json({ 
+        error: "User not found",
+        code: "ADMIN_PROFILE_HIDDEN"
+      });
     }
 
     // Check if the current user is blocked by the target user

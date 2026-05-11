@@ -45,13 +45,13 @@ export const Footer = ({ variant = 'full' }: FooterProps) => {
 
   if (variant === 'compact') {
     return (
-      <footer className="bg-slate-900 text-slate-100 border-t border-slate-700 rounded-t-2xl overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="text-sm">
+      <footer className="bg-slate-900 text-slate-100 border-t border-slate-700 rounded-t-2xl overflow-hidden w-full">
+        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+            <div className="text-xs sm:text-sm text-center sm:text-left">
               <p>&copy; {currentYear} Treesh. All rights reserved.</p>
             </div>
-            <div className="flex gap-6 text-sm">
+            <div className="flex gap-3 sm:gap-6 text-xs sm:text-sm flex-wrap justify-center">
               <button
                 onClick={() => handleNavigate('/about')}
                 className="hover:text-primary transition-colors"
@@ -84,69 +84,69 @@ export const Footer = ({ variant = 'full' }: FooterProps) => {
   }
 
   return (
-    <footer className="bg-slate-900 text-slate-100 border-t border-slate-700 rounded-t-2xl overflow-hidden">
-      <div className="w-full px-3 sm:px-4 md:px-6 py-12">
+    <footer className="bg-slate-900 text-slate-100 border-t border-slate-700 rounded-t-2xl overflow-hidden w-full">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-8 sm:py-12">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8">
           {/* Brand Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">T</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-base sm:text-lg">T</span>
               </div>
-              <h3 className="text-2xl font-bold text-white">Treesh</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-white">Treesh</h3>
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xs">
               Connect, Share, and Stream with people around the world.
             </p>
             <div className="flex gap-2 pt-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full"
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full flex-shrink-0"
                 onClick={() => handleSocialClick('Facebook')}
                 title="Follow us on Facebook"
               >
-                <Facebook className="w-5 h-5" />
+                <Facebook className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full"
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full flex-shrink-0"
                 onClick={() => handleSocialClick('Twitter')}
                 title="Follow us on Twitter"
               >
-                <Twitter className="w-5 h-5" />
+                <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full"
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full flex-shrink-0"
                 onClick={() => handleSocialClick('Instagram')}
                 title="Follow us on Instagram"
               >
-                <Instagram className="w-5 h-5" />
+                <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-10 w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full"
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-slate-400 hover:text-primary hover:bg-slate-800 transition rounded-full flex-shrink-0"
                 onClick={() => handleSocialClick('YouTube')}
                 title="Subscribe on YouTube"
               >
-                <Youtube className="w-5 h-5" />
+                <Youtube className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-base font-semibold text-white mb-4">Quick Links</h4>
-            <ul className="space-y-2">
+            <h4 className="text-sm sm:text-base font-semibold text-white mb-3 sm:mb-4">Quick Links</h4>
+            <ul className="space-y-1 sm:space-y-2">
               <li>
                 <button
                   onClick={() => handleNavigate('/about')}
-                  className="text-sm text-slate-400 hover:text-primary transition-colors duration-200"
+                  className="text-xs sm:text-sm text-slate-400 hover:text-primary transition-colors duration-200"
                 >
                   About Us
                 </button>
@@ -154,7 +154,7 @@ export const Footer = ({ variant = 'full' }: FooterProps) => {
               <li>
                 <button
                   onClick={() => handleNavigate('/terms')}
-                  className="text-sm text-slate-400 hover:text-primary transition-colors duration-200"
+                  className="text-xs sm:text-sm text-slate-400 hover:text-primary transition-colors duration-200"
                 >
                   Terms & Conditions
                 </button>
@@ -162,7 +162,7 @@ export const Footer = ({ variant = 'full' }: FooterProps) => {
               <li>
                 <button
                   onClick={() => handleNavigate('/privacy')}
-                  className="text-sm text-slate-400 hover:text-primary transition-colors duration-200"
+                  className="text-xs sm:text-sm text-slate-400 hover:text-primary transition-colors duration-200"
                 >
                   Privacy Policy
                 </button>
@@ -170,7 +170,7 @@ export const Footer = ({ variant = 'full' }: FooterProps) => {
               <li>
                 <button
                   onClick={() => handleNavigate('/support')}
-                  className="text-sm text-slate-400 hover:text-primary transition-colors duration-200"
+                  className="text-xs sm:text-sm text-slate-400 hover:text-primary transition-colors duration-200"
                 >
                   Support & Help
                 </button>
@@ -180,79 +180,59 @@ export const Footer = ({ variant = 'full' }: FooterProps) => {
 
           {/* Get the App */}
           <div>
-            <h4 className="text-base font-semibold text-white mb-4">Get the App</h4>
+            <h4 className="text-sm sm:text-base font-semibold text-white mb-3 sm:mb-4">Get the App</h4>
             <div className="space-y-2">
               <Button
                 variant="outline"
-                className="w-full justify-start text-sm h-10 px-3 bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
+                className="w-full justify-start text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-3 bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
                 onClick={() => handleDownload('iOS')}
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download iOS
+                <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span>iOS</span>
               </Button>
               <Button
                 variant="outline"
-                className="w-full justify-start text-sm h-10 px-3 bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
+                className="w-full justify-start text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-3 bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
                 onClick={() => handleDownload('Android')}
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download Android
+                <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span>Android</span>
               </Button>
             </div>
           </div>
 
           {/* Follow Us / Contact */}
           <div>
-            <h4 className="text-base font-semibold text-white mb-4">Follow Us</h4>
-            <div className="space-y-3">
-              <p className="text-sm text-slate-400">
-                Connect with us on social media for the latest updates.
+            <h4 className="text-sm sm:text-base font-semibold text-white mb-3 sm:mb-4">Contact</h4>
+            <div className="space-y-2 sm:space-y-3">
+              <p className="text-xs sm:text-sm text-slate-400">
+                Connect with us for updates.
               </p>
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white h-9"
-                  onClick={() => handleSocialClick('Facebook')}
-                >
-                  <Facebook className="w-4 h-4 mr-1" />
-                  Facebook
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-sky-500 hover:bg-sky-600 text-white h-9"
-                  onClick={() => handleSocialClick('Twitter')}
-                >
-                  <Twitter className="w-4 h-4 mr-1" />
-                  Twitter
-                </Button>
-              </div>
-              <div className="pt-2 space-y-2">
-                <a
-                  href="mailto:support@treesh.com"
-                  className="flex items-center gap-2 text-sm text-slate-400 hover:text-primary transition-colors"
-                >
-                  <Mail className="w-4 h-4" />
-                  support@treesh.com
-                </a>
-                <a
-                  href="tel:+1-800-TREESH"
-                  className="flex items-center gap-2 text-sm text-slate-400 hover:text-primary transition-colors"
-                >
-                  <Phone className="w-4 h-4" />
-                  1-800-TREESH
-                </a>
-              </div>
+              <a
+                href="mailto:support@treesh.com"
+                className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-primary transition-colors break-all"
+              >
+                <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span>support@treesh.com</span>
+              </a>
+              <a
+                href="tel:+1-800-TREESH"
+                className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-primary transition-colors"
+              >
+                <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span>1-800-TREESH</span>
+              </a>
             </div>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="border-t border-slate-700 my-6" />
+        <div className="border-t border-slate-700 my-6 sm:my-8" />
 
         {/* Bottom Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-400">
-          <p>&copy; {currentYear} Treesh. All rights reserved.</p>
-          <div className="flex gap-6">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+          <p className="text-center sm:text-left">&copy; {currentYear} Treesh. All rights reserved.</p>
+          <div className="flex gap-3 sm:gap-6 flex-wrap justify-center">
             <button
               onClick={() => handleNavigate('/about')}
               className="hover:text-primary transition-colors"

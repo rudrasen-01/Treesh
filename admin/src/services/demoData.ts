@@ -314,7 +314,7 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
   },
 ];
 
-const DEMO_STREAMER_DISCOVERY = [
+const DEMO_STREAMER_DISCOVERY: any[] = [
   {
     id: '2',
     name: 'Demo Streamer',

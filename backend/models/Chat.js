@@ -168,10 +168,14 @@ chatSchema.statics.findUserChats = async function (userId) {
     ...usersWhoBlockedMe
   ];
 
+  // IMPORTANT: Use $and to properly combine multiple conditions on 'participants'
+  // Ensure the user is a participant AND excluded users are NOT participants
   return this.find({
-    participants: userId,
-    isActive: true,
-    participants: { $nin: allExclusions } // Exclude blocked and blocking users
+    $and: [
+      { participants: userId }, // User MUST be in participants
+      { isActive: true }, // Chat must be active
+      { participants: { $nin: allExclusions } } // Blocked/blocking users must NOT be in participants
+    ]
   })
     .populate(
       'participants',

@@ -252,6 +252,14 @@ export const MobileNavigation = ({
 }: NavigationProps) => {
   const notifications = Math.max(0, Number(notificationCount ?? 0));
   const [messageBadges, setMessageBadges] = useState({ total: 0, chats: 0 });
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    setShowMoreMenu(false);
+    window.location.href = '/';
+  };
 
   useEffect(() => {
     const onSet = (e: Event) => {
@@ -277,7 +285,6 @@ export const MobileNavigation = ({
       );
   }, []);
 
-  // Allow rerender on chatRead; useChat updates its internal state on this event
   useEffect(() => {
     const onRead = () => setTimeout(() => {}, 0);
     window.addEventListener("chatRead", onRead);
@@ -297,9 +304,15 @@ export const MobileNavigation = ({
     },
   ];
 
+  const moreItems = [
+    { id: "notifications", label: "Notifications", icon: Bell, badge: notifications },
+    { id: "profile", label: "Profile", icon: User, badge: 0 },
+    { id: "settings", label: "Settings", icon: Settings, badge: 0 },
+  ];
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 shadow-lg">
-      <div className="flex items-center justify-around py-2 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 shadow-lg md:hidden">
+      <div className="flex items-center justify-around py-2 px-1 sm:px-2 relative">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -310,10 +323,13 @@ export const MobileNavigation = ({
               variant="ghost"
               size="sm"
               className={cn(
-                "flex flex-col items-center space-y-1 h-14 px-2 min-w-0 font-inter",
+                "flex flex-col items-center space-y-0.5 h-14 px-1.5 sm:px-2 min-w-0 font-inter text-xs sm:text-sm",
                 isActive && "text-primary"
               )}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => {
+                onTabChange(item.id);
+                setShowMoreMenu(false);
+              }}
             >
               <div className="relative">
                 <Icon className="w-5 h-5" />
@@ -326,10 +342,75 @@ export const MobileNavigation = ({
                   </Badge>
                 )}
               </div>
-              <span className="text-xs truncate max-w-full">{item.label}</span>
+              <span className="truncate max-w-full">{item.label}</span>
             </Button>
           );
         })}
+
+        {/* More Menu Button */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "flex flex-col items-center space-y-0.5 h-14 px-1.5 sm:px-2 min-w-0 font-inter text-xs sm:text-sm",
+              showMoreMenu && "text-primary"
+            )}
+            onClick={() => setShowMoreMenu(!showMoreMenu)}
+          >
+            <div className="relative">
+              <Settings className="w-5 h-5" />
+            </div>
+            <span className="truncate max-w-full">More</span>
+          </Button>
+
+          {/* More Menu Dropdown */}
+          {showMoreMenu && (
+            <div className="absolute bottom-full right-0 mb-2 bg-card border border-border rounded-lg shadow-xl w-48 p-2 space-y-1 z-[999]">
+              {moreItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+
+                return (
+                  <Button
+                    key={item.id}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start text-xs sm:text-sm h-9",
+                      isActive && "text-primary bg-primary/10"
+                    )}
+                    onClick={() => {
+                      onTabChange(item.id);
+                      setShowMoreMenu(false);
+                    }}
+                  >
+                    <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {item.badge > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="h-5 w-5 p-0 flex items-center justify-center text-xs flex-shrink-0 ml-2"
+                      >
+                        {item.badge > 9 ? "9+" : item.badge}
+                      </Badge>
+                    )}
+                  </Button>
+                );
+              })}
+              
+              <div className="border-t border-border my-1" />
+              
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-xs sm:text-sm h-9 text-red-500 hover:bg-red-50 hover:text-red-600"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span className="flex-1 text-left">Logout</span>
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

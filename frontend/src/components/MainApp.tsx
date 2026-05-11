@@ -905,7 +905,7 @@ export const MainApp = () => {
         </div>
 
         {/* MAIN CONTENT */}
-        <main className={`flex-1 min-w-0 overflow-x-hidden relative ${activeTab === "reels" ? "" : "pb-20 md:pb-6"}`}>
+        <main className={`flex-1 min-w-0 overflow-x-hidden relative pb-24 md:pb-6`}>
           <ErrorBoundary>{renderContent()}</ErrorBoundary>
         </main>
       </div>
@@ -913,7 +913,7 @@ export const MainApp = () => {
       {/* FOOTER - Full Width */}
       {activeTab === "home" && (
         <div
-          className="transition-all duration-300 px-3 sm:px-4 md:px-6"
+          className="transition-all duration-300 px-3 sm:px-4 md:px-6 pb-24 md:pb-6"
           style={{
             marginLeft: isMobile ? 0 : `${desktopSidebarWidth}px`,
             width: isMobile ? "100%" : `calc(100% - ${desktopSidebarWidth}px)`,
@@ -923,8 +923,7 @@ export const MainApp = () => {
         </div>
       )}
 
-      {/* MOBILE NAVIGATION */}
-      {activeTab !== "reels" && (
+      {/* MOBILE NAVIGATION - Always Visible */}
       <div className="md:hidden">
         <MobileNavigation
           activeTab={activeTab}
@@ -932,7 +931,6 @@ export const MainApp = () => {
           notificationCount={notificationCount}
         />
       </div>
-      )}
 
       {/* MODALS */}
       <UploadModal

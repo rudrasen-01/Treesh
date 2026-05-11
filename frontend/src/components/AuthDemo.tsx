@@ -169,6 +169,7 @@ export const AuthDemo = () => {
               <div className="relative">
                 <input
                   type="password"
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   className="w-full p-2 border rounded-md pr-10"
                   disabled
@@ -277,6 +278,7 @@ export const AuthDemo = () => {
               <div className="relative">
                 <input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Create a strong password"
                   className="w-full p-2 border rounded-md pr-10"
                   disabled
@@ -298,6 +300,7 @@ export const AuthDemo = () => {
               <label className="text-sm font-medium">Confirm Password</label>
               <input
                 type="password"
+                autoComplete="new-password"
                 placeholder="Confirm your password"
                 className="w-full p-2 border rounded-md"
                 disabled

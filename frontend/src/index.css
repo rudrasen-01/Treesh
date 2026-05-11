@@ -16,6 +16,14 @@
 html {
   scrollbar-gutter: stable;
   overflow-y: scroll;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
 }
 
 @layer base {
@@ -26,9 +34,130 @@ html {
     @apply bg-background text-foreground font-inter font-medium antialiased;
     margin: 0;
     padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-treesh;
+  }
+
+  /* Mobile first responsive text sizes */
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl;
+  }
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
+  }
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl;
+  }
+  h4 {
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl;
+  }
+}
+
+@layer components {
+  /* Responsive container padding */
+  .container-responsive {
+    @apply px-4 sm:px-6 md:px-8 lg:px-8;
+  }
+
+  /* Mobile-first responsive spacing */
+  .gap-responsive {
+    @apply gap-3 sm:gap-4 md:gap-6 lg:gap-8;
+  }
+
+  .px-responsive {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8;
+  }
+
+  .py-responsive {
+    @apply py-3 sm:py-4 md:py-6 lg:py-8;
+  }
+
+  /* Touch-friendly button sizing */
+  .btn-touch {
+    @apply min-h-12 sm:min-h-11 md:min-h-10;
+    @apply px-4 sm:px-3 md:px-3;
+  }
+
+  /* Touch-friendly input sizing */
+  .input-touch {
+    @apply min-h-12 sm:min-h-11 md:min-h-10;
+    @apply px-4 sm:px-3 md:px-3;
+  }
+
+  /* Responsive grid layouts */
+  .grid-responsive-2 {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6;
+  }
+
+  .grid-responsive-3 {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+  }
+
+  .grid-responsive-4 {
+    @apply grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4;
+  }
+
+  /* Responsive card padding */
+  .card-responsive {
+    @apply p-4 sm:p-5 md:p-6 lg:p-8;
+  }
+
+  /* Modal responsive sizing */
+  .modal-responsive {
+    @apply w-full sm:max-w-sm md:max-w-md lg:max-w-lg;
+  }
+
+  .modal-responsive-lg {
+    @apply w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl;
+  }
+
+  /* Responsive flex directions */
+  .flex-responsive {
+    @apply flex flex-col sm:flex-row;
+  }
+
+  /* Safe area padding for notched devices */
+  .safe-area-horizontal {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .safe-area-vertical {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Full width responsive */
+  .full-width-responsive {
+    @apply w-full -mx-4 sm:-mx-6 md:-mx-0;
+  }
+
+  /* Responsive sidebar */
+  .sidebar-responsive {
+    @apply hidden lg:block fixed left-0 top-0 h-screen w-64 overflow-y-auto;
+  }
+
+  /* Responsive main content area */
+  .main-responsive {
+    @apply w-full lg:ml-64;
+  }
+
+  /* Responsive header */
+  .header-responsive {
+    @apply p-3 sm:p-4 md:p-6 lg:p-8;
+  }
+
+  /* Stack to horizontal on larger screens */
+  .stack-responsive {
+    @apply flex flex-col md:flex-row md:items-center md:justify-between;
+  }
+
+  /* Responsive divider with proper spacing */
+  .divider-responsive {
+    @apply my-4 sm:my-6 md:my-8;
   }
 }
 
@@ -63,5 +192,54 @@ html {
   .font-inter-normal {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
+  }
+
+  /* Mobile-first responsive utilities */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-xl sm:text-2xl;
+  }
+
+  /* Touch-friendly spacing */
+  .touch-pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .touch-pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Hide on mobile, show on larger screens */
+  .hide-mobile {
+    @apply hidden md:block;
+  }
+
+  .show-mobile {
+    @apply block md:hidden;
+  }
+
+  /* Responsive scrolling */
+  .scroll-smooth-mobile {
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent layout shift from scrollbar */
+  .prevent-scroll-shift {
+    scrollbar-gutter: stable;
   }
 }

@@ -315,6 +315,7 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
               <Input
                 id="login-identifier"
                 type={loginMethod === "email" ? "email" : "text"}
+                autoComplete={loginMethod === "email" ? "email" : "username"}
                 placeholder={
                   loginMethod === "email"
                     ? "Enter your email"
@@ -346,6 +347,7 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -518,6 +520,7 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                   <Input
                     id="signupPassword"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="Create a strong password"
                     value={password}
                     onChange={(e) => {
@@ -559,6 +562,7 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
