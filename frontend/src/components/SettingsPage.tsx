@@ -126,7 +126,21 @@ export const SettingsPage = () => {
     if (settings) {
       setPrivacySettings(settings.privacy);
       setNotificationSettings(settings.notifications);
-      setAppSettings(settings.app);
+      
+      // Check if localStorage has a theme preference (from landing page)
+      const localStorageTheme = localStorage.getItem("theme");
+      const appSettingsToUse = { ...settings.app };
+      
+      // If localStorage has a theme, use that and update setTheme
+      if (localStorageTheme && ["light", "dark", "system"].includes(localStorageTheme)) {
+        appSettingsToUse.theme = localStorageTheme as "light" | "dark" | "system";
+        setTheme(localStorageTheme as "light" | "dark" | "system");
+      } else {
+        // Otherwise use backend theme
+        setTheme(settings.app.theme);
+      }
+      
+      setAppSettings(appSettingsToUse);
       setLocalAccountSettings((prev) => ({
         ...prev,
         language: settings.app.language || prev.language,

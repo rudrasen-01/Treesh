@@ -11,6 +11,16 @@ export function ThemePreferenceSync() {
   useEffect(() => {
     if (!isAuthenticated || isLoading) return;
 
+    const localTheme = localStorage.getItem("theme");
+    if (
+      localTheme === "light" ||
+      localTheme === "dark" ||
+      localTheme === "system"
+    ) {
+      setTheme(localTheme);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       try {

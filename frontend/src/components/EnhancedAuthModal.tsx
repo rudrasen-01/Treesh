@@ -30,7 +30,7 @@ import {
 interface EnhancedAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin: () => void;
+  onLogin?: () => void;
 }
 
 interface ValidationErrors {
@@ -172,7 +172,7 @@ const COUNTRY_CODES = [
 export const EnhancedAuthModal = ({
   isOpen,
   onClose,
-  onLogin,
+  onLogin = () => {},
 }: EnhancedAuthModalProps) => {
   const [activeTab, setActiveTab] = useState("login");
   const [loginData, setLoginData] = useState({ identifier: "", password: "" });
@@ -812,7 +812,7 @@ export const EnhancedAuthModal = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[calc(100%-1rem)] sm:max-w-lg lg:max-w-xl xl:max-w-2xl bg-offwhite max-h-[92vh] overflow-hidden p-0 transition-all duration-300 flex flex-col">
+      <DialogContent className="w-[calc(100%-1rem)] sm:max-w-lg lg:max-w-xl xl:max-w-2xl bg-slate-100 dark:bg-slate-900 max-h-[92vh] overflow-hidden p-0 transition-all duration-300 flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl">
         <div className="px-4 sm:px-6 pt-4 sm:pt-6">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl lg:text-3xl font-bold text-foreground font-treesh">
@@ -1412,7 +1412,7 @@ export const EnhancedAuthModal = ({
 
     {/* Terms of Service Modal */}
     <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
-      <DialogContent className="w-[calc(100%-1rem)] sm:max-w-2xl bg-offwhite max-h-[92vh] overflow-hidden p-0 transition-all duration-300 flex flex-col">
+      <DialogContent className="w-[calc(100%-1rem)] sm:max-w-2xl bg-slate-100 dark:bg-slate-900 max-h-[92vh] overflow-hidden p-0 transition-all duration-300 flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl">
         <div className="px-4 sm:px-6 pt-4 sm:pt-6">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-foreground font-treesh">
@@ -1495,7 +1495,7 @@ export const EnhancedAuthModal = ({
 
     {/* Privacy Policy Modal */}
     <Dialog open={showPrivacyModal} onOpenChange={setShowPrivacyModal}>
-      <DialogContent className="w-[calc(100%-1rem)] sm:max-w-2xl bg-offwhite max-h-[92vh] overflow-hidden p-0 transition-all duration-300 flex flex-col">
+      <DialogContent className="w-[calc(100%-1rem)] sm:max-w-2xl bg-slate-100 dark:bg-slate-900 max-h-[92vh] overflow-hidden p-0 transition-all duration-300 flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl">
         <div className="px-4 sm:px-6 pt-4 sm:pt-6">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-foreground font-treesh">

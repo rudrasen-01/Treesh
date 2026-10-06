@@ -5,8 +5,9 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
-import { AuthProvider } from '@/hooks/useAuth.tsx';
+import { AuthProvider, useAuth } from '@/hooks/useAuth.tsx';
 import { MainApp } from './components/MainApp';
+import { LandingPage } from './components/LandingPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AboutPage, TermsPage, PrivacyPage, SupportPage } from './components/StaticPages';
 import Footer from './components/Footer';
@@ -102,13 +103,11 @@ const App = () => {
               <Routes>
                 <Route 
                   path="/" 
-                  element={
-                    showAdmin ? (
-                      <AdminDashboard onClose={() => setShowAdmin(false)} />
-                    ) : (
-                      <MainApp />
-                    )
-                  } 
+                  element={<RootRouter showAdmin={showAdmin} setShowAdmin={setShowAdmin} />} 
+                />
+                <Route 
+                  path="/landing" 
+                  element={<LandingPage />} 
                 />
                 <Route 
                   path="/admin" 
@@ -163,6 +162,31 @@ const App = () => {
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
+  );
+};
+
+// Component to handle root routing logic
+const RootRouter = ({ showAdmin, setShowAdmin }: { showAdmin: boolean; setShowAdmin: (value: boolean) => void }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  // Show landing page to non-authenticated users
+  if (!isAuthenticated) {
+    return <LandingPage />;
+  }
+
+  // Show main app to authenticated users
+  return showAdmin ? (
+    <AdminDashboard onClose={() => setShowAdmin(false)} />
+  ) : (
+    <MainApp />
   );
 };
 
